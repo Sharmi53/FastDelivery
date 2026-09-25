@@ -7,27 +7,19 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const { pool } = require('../config/db');
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `product-${uniqueSuffix}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 // File validation: allow only JPG, JPEG, PNG, WEBP
 const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -61,11 +53,14 @@ router.post('/upload', (req, res) => {
           message: 'File size exceeds the 5MB limit'
         });
       }
+
       return res.status(400).json({
         success: false,
         message: `Upload error: ${err.message}`
       });
-    } else if (err) {
+    }
+
+    if (err) {
       return res.status(400).json({
         success: false,
         message: err.message || 'Failed to upload image'
@@ -79,14 +74,31 @@ router.post('/upload', (req, res) => {
       });
     }
 
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'fastdelivery/products',
+        resource_type: 'image'
+      },
+      (uploadError, result) => {
+        if (uploadError) {
+          console.error('Cloudinary upload error:', uploadError);
 
-    res.status(200).json({
-      success: true,
-      message: 'Image uploaded successfully',
-      imageUrl,
-      filename: req.file.filename
-    });
+          return res.status(500).json({
+            success: false,
+            message: 'Cloudinary upload failed'
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Image uploaded successfully',
+          imageUrl: result.secure_url,
+          filename: result.public_id
+        });
+      }
+    );
+
+    uploadStream.end(req.file.buffer);
   });
 });
 
@@ -436,36 +448,7 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Delete the uploaded image file from disk only if it is a local /uploads/ file.
-    // External URLs (http://, https://) and empty values are left untouched.
-    if (imageValue) {
-      try {
-        const uploadPrefix = `/uploads/`;
-        let filename = null;
-
-        if (imageValue.includes(uploadPrefix)) {
-          // e.g. "http://localhost:5000/uploads/product-123.jpg"
-          filename = imageValue.substring(
-            imageValue.lastIndexOf(uploadPrefix) + uploadPrefix.length
-          );
-        }
-
-        if (filename && filename.startsWith('product-')) {
-          const filePath = path.join(uploadDir, filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`[DELETE /api/products/${productId}] Deleted image file: ${filename}`);
-          }
-        }
-      } catch (imgErr) {
-        // Non-fatal: log the error but do not fail the request
-        console.warn(
-          `[DELETE /api/products/${productId}] Could not delete image file:`,
-          imgErr.message
-        );
-      }
-    }
-
+    
     res.json({
       success: true,
       message: 'Product permanently deleted successfully'
