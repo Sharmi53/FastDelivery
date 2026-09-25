@@ -1,0 +1,18 @@
+{
+  "name": "grocery-app-monorepo",
+  "version": "1.0.0",
+  "description": "Complete Grocery E-Commerce Application Structure",
+  "scripts": {
+    "start:backend": "cd backend && npm run dev",
+    "start:customer": "cd customer-frontend && npm run dev",
+    "start:admin": "cd admin-panel && npm run dev",
+    "start:delivery": "cd delivery-panel && npm run dev"
+  },
+  "keywords": [
+    "grocery",
+    "ecommerce",
+    "react",
+    "express",
+    "monorepo"
+  ]
+}
