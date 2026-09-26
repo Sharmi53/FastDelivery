@@ -12,7 +12,9 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -124,8 +126,7 @@ export default function App() {
           return;
         }
 
-        const response = await fetch(
-          'http://localhost:5000/api/auth/me',
+        const response = await fetch(`${API_URL}/auth/me`,
           {
             method: 'GET',
             headers: {
@@ -1249,7 +1250,7 @@ export default function App() {
       >
 
         <a
-          href="http://localhost:3000"
+          href="https://fast-delivery-hazel.vercel.app">
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -3494,7 +3495,7 @@ export default function App() {
                       required
                       value={dpEmail}
                       onChange={(e) => setDpEmail(e.target.value)}
-                      placeholder="e.g. raj@freshbasket.com"
+                      placeholder="e.g. raj@FastDelivery.com"
                       style={{ width: '100%', padding: '0.65rem', border: '1px solid var(--border)', borderRadius: '8px' }}
                     />
                   </div>
@@ -3664,12 +3665,12 @@ export default function App() {
                             style={{
                               background:
                                 dp.status === 'active' ? '#d1fae5'
-                                : dp.status === 'suspended' ? '#fef9c3'
-                                : '#fee2e2',
+                                  : dp.status === 'suspended' ? '#fef9c3'
+                                    : '#fee2e2',
                               color:
                                 dp.status === 'active' ? '#047857'
-                                : dp.status === 'suspended' ? '#92400e'
-                                : '#b91c1c',
+                                  : dp.status === 'suspended' ? '#92400e'
+                                    : '#b91c1c',
                               padding: '0.25rem 0.6rem',
                               borderRadius: '12px',
                               fontSize: '0.78rem',

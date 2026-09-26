@@ -1,40 +1,46 @@
 const express = require('express');
-const cors    = require('cors');
+const cors = require('cors');
 require('dotenv').config();
 
-const path   = require('path');
+const path = require('path');
 
 const { testConnection } = require('./config/db');
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Middleware ──────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://fast-delivery-hazel.vercel.app',
+    'https://fast-delivery-ft2x.vercel.app',
+    'https://fast-delivery-7fe5.vercel.app'
+  ]
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ──────────────────────────────────────────────────
-const authRoutes          = require('./routes/auth');
-const productRoutes       = require('./routes/products');
-const categoryRoutes      = require('./routes/categories');
-const cartRoutes          = require('./routes/cart');
-const orderRoutes         = require('./routes/orders');
-const paymentRoutes       = require('./routes/payments');
-const deliveryRoutes      = require('./routes/delivery');
-const notificationRoutes  = require('./routes/notifications');
-const locationRoutes      = require('./routes/location');
-const contactRoutes       = require('./routes/contact');
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const categoryRoutes = require('./routes/categories');
+const cartRoutes = require('./routes/cart');
+const orderRoutes = require('./routes/orders');
+const paymentRoutes = require('./routes/payments');
+const deliveryRoutes = require('./routes/delivery');
+const notificationRoutes = require('./routes/notifications');
+const locationRoutes = require('./routes/location');
+const contactRoutes = require('./routes/contact');
 
-app.use('/api/auth',          authRoutes);
-app.use('/api/products',      productRoutes);
-app.use('/api/categories',    categoryRoutes);
-app.use('/api/cart',          cartRoutes);
-app.use('/api/orders',        orderRoutes);
-app.use('/api/payments',      paymentRoutes);
-app.use('/api/delivery',      deliveryRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/delivery', deliveryRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/location',      locationRoutes);
-app.use('/api/contact',       contactRoutes);
+app.use('/api/location', locationRoutes);
+app.use('/api/contact', contactRoutes);
 
 // ── Admin Dashboard Statistics ────────────────────────────────
 const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
@@ -56,17 +62,17 @@ app.get('/api/health', async (req, res) => {
   }
 
   res.json({
-    success:   true,
-    message:   'API is running',
-    database:  dbStatus,
-    app:       'FreshBasket Grocery E-Commerce Backend',
+    success: true,
+    message: 'API is running',
+    database: dbStatus,
+    app: 'FastDelivery Grocery E-Commerce Backend',
     timestamp: new Date().toISOString()
   });
 });
 
 // ── Root ─────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.send('FreshBasket Grocery Backend is running. Visit /api/health to check database status.');
+  res.send('FastDelivery Grocery Backend is running. Visit /api/health to check database status.');
 });
 
 // ── Start server ─────────────────────────────────────────────

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Truck, CreditCard, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 
 export default function Checkout() {
   const {
@@ -182,7 +184,7 @@ export default function Checkout() {
         <CheckCircle2 color="#10b981" size={60} style={{ margin: '0 auto 1rem' }} />
         <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Order Placed Successfully!</h2>
         <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 1.5rem' }}>
-          Thank you for shopping with FreshBasket. Your order{' '}
+          Thank you for shopping with FastDelivery. Your order{' '}
           <strong>#{createdOrder.orderNumber}</strong> has been received.
         </p>
         <div

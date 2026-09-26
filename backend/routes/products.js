@@ -9,6 +9,10 @@ const router = express.Router();
 const path = require('path');
 const multer = require('multer');
 const { pool } = require('../config/db');
+const {
+  authenticateToken,
+  authorizeRoles
+} = require('../middleware/authMiddleware');
 
 const cloudinary = require('cloudinary').v2;
 
@@ -44,63 +48,67 @@ const upload = multer({
 
 // POST /api/products/upload
 // Handles product image file upload via multipart/form-data
-router.post('/upload', (req, res) => {
-  upload.single('image')(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({
-          success: false,
-          message: 'File size exceeds the 5MB limit'
-        });
-      }
-
-      return res.status(400).json({
-        success: false,
-        message: `Upload error: ${err.message}`
-      });
-    }
-
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        message: err.message || 'Failed to upload image'
-      });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No image file provided'
-      });
-    }
-
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'fastdelivery/products',
-        resource_type: 'image'
-      },
-      (uploadError, result) => {
-        if (uploadError) {
-          console.error('Cloudinary upload error:', uploadError);
-
-          return res.status(500).json({
+router.post(
+  '/upload',
+  authenticateToken,
+  authorizeRoles('admin'),
+  (req, res) => {
+    upload.single('image')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
             success: false,
-            message: 'Cloudinary upload failed'
+            message: 'File size exceeds the 5MB limit'
           });
         }
 
-        return res.status(200).json({
-          success: true,
-          message: 'Image uploaded successfully',
-          imageUrl: result.secure_url,
-          filename: result.public_id
+        return res.status(400).json({
+          success: false,
+          message: `Upload error: ${err.message}`
         });
       }
-    );
 
-    uploadStream.end(req.file.buffer);
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Failed to upload image'
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No image file provided'
+        });
+      }
+
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'fastdelivery/products',
+          resource_type: 'image'
+        },
+        (uploadError, result) => {
+          if (uploadError) {
+            console.error('Cloudinary upload error:', uploadError);
+
+            return res.status(500).json({
+              success: false,
+              message: 'Cloudinary upload failed'
+            });
+          }
+
+          return res.status(200).json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imageUrl: result.secure_url,
+            filename: result.public_id
+          });
+        }
+      );
+
+      uploadStream.end(req.file.buffer);
+    });
   });
-});
 
 // POST /api/products
 // Creates a new product in MySQL
@@ -448,7 +456,7 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    
+
     res.json({
       success: true,
       message: 'Product permanently deleted successfully'

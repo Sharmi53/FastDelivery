@@ -5,7 +5,9 @@ import CategoryCard from '../components/CategoryCard';
 import { sampleCategories } from '../data/sampleData';
 import { Search as SearchIcon } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 
 export default function Products() {
   const location = useLocation();

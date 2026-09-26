@@ -5,7 +5,9 @@ import ProductCard from '../components/ProductCard';
 import { sampleCategories } from '../data/sampleData';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 export default function Home() {
   const [selectedCategory, setSelectedCategory] =
     useState('All Products');
@@ -17,7 +19,7 @@ export default function Home() {
     const fetchProducts = async () => {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/products'
+          `${API_URL}/products`
         );
 
         const data = await response.json();

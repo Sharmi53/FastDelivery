@@ -5,7 +5,9 @@ import React, {
   useEffect
 } from 'react';
 const AuthContext = createContext();
-
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 
 export const AuthProvider = ({ children }) => {
 
@@ -42,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         const response = await fetch(
-          'http://localhost:5000/api/auth/me',
+          `${API_URL}/auth/me`,
           {
             method: 'GET',
             headers: {
@@ -143,8 +145,8 @@ export const AuthProvider = ({ children }) => {
     setSelectedRole(null);
 
     localStorage.removeItem('grocery_user');
+    localStorage.removeItem('grocery_selected_role');
   };
-
 
   return (
     <AuthContext.Provider

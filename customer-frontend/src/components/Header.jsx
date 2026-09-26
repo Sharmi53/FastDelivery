@@ -4,7 +4,9 @@ import { ShoppingBag, Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRigh
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:5000/api';
 
 export default function Header({ searchTerm, setSearchTerm }) {
   const { cartCount } = useCart();
