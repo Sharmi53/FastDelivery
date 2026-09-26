@@ -1250,7 +1250,7 @@ export default function App() {
       >
 
         <a
-          href="https://fast-delivery-hazel.vercel.app">
+          href="https://fast-delivery-hazel.vercel.app"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
