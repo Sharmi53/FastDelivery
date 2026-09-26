@@ -13,7 +13,7 @@ export default function AdminLogin() {
     e.preventDefault();
     login({ email, name: 'Store Administrator' }, 'admin');
     // Open or redirect to Admin Panel
-    window.location.href = 'http://localhost:3001';
+   window.location.href = 'https://fast-delivery-ft2x.vercel.app';
   };
 
   return (

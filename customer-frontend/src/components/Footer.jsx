@@ -44,9 +44,9 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Other Panels</h4>
           <ul className="footer-links">
-            <li><a href="http://localhost:3001" target="_blank" rel="noreferrer" style={{ color: '#f59e0b', fontWeight: 600 }}>Admin Dashboard →</a></li>
-            <li><a href="http://localhost:3002" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>Delivery Partner Panel →</a></li>
-            <li><a href="http://localhost:5000/api/health" target="_blank" rel="noreferrer">Backend API Status Check</a></li>
+            <li><a href="https://fast-delivery-ft2x.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#f59e0b', fontWeight: 600 }}>Admin Dashboard →</a></li>
+            <li><a href="https://fast-delivery-7fe5.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>Delivery Partner Panel →</a></li>
+            {/* <li><a href="http://localhost:5000/api/health" target="_blank" rel="noreferrer">Backend API Status Check</a></li> */}
           </ul>
         </div>
       </div>

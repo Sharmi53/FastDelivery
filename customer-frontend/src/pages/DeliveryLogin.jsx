@@ -13,7 +13,7 @@ export default function DeliveryLogin() {
     e.preventDefault();
     login({ name: 'Delivery Agent #4402', phone }, 'delivery');
     // Open or redirect to Delivery Panel
-    window.location.href = 'http://localhost:3002';
+    window.location.href = 'https://fast-delivery-7fe5.vercel.app';
   };
 
   return (

@@ -32,7 +32,7 @@ grocery_app/
 │
 ├── delivery-panel/           # Delivery Partner Panel (React + Vite)
 │   ├── src/                  # Active Order Pickup, Map Location Preview & Status Updates
-│   └── package.json          # (Runs on http://localhost:3002)
+│   └── package.json          # (Runs on https://fast-delivery-ft2x.vercel.app)
 │
 ├── package.json              # Monorepo command runner
 └── README.md                 # Project setup and documentation guide
@@ -56,21 +56,21 @@ npm run dev
 ```bash
 cd customer-frontend
 npm run dev
-# App will open on http://localhost:3000
+# App will open on https://fast-delivery-8iuj3e5t9-sharmi35.vercel.app
 ```
 
 ### 3. Start Admin Panel
 ```bash
 cd admin-panel
 npm run dev
-# Dashboard will open on http://localhost:3001
+# Dashboard will open on https://fast-delivery-ft2x.vercel.app
 ```
 
 ### 4. Start Delivery Partner Panel
 ```bash
 cd delivery-panel
 npm run dev
-# App will open on http://localhost:3002
+# App will open on https://fast-delivery-7fe5.vercel.app
 ```
 
 ---
