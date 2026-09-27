@@ -13,7 +13,11 @@ app.use(cors({
   origin: [
     'https://fast-delivery-hazel.vercel.app',
     'https://fast-delivery-ft2x.vercel.app',
-    'https://fast-delivery-7fe5.vercel.app'
+    'https://fast-delivery-7fe5.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:5173'
   ]
 }));
 app.use(express.json());

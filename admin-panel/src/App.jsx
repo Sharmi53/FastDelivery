@@ -1047,8 +1047,19 @@ export default function App() {
         const formData = new FormData();
         formData.append('image', productImageFile);
 
+        const savedUser = localStorage.getItem('grocery_admin_user');
+
+        if (!savedUser) {
+          throw new Error('Admin login token not found.');
+        }
+
+        const userData = JSON.parse(savedUser);
+
         const uploadResponse = await fetch(`${API_URL}/products/upload`, {
           method: 'POST',
+          headers: {
+            Authorization: `Bearer ${userData.token}`
+          },
           body: formData
         });
 
