@@ -17,6 +17,6 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl.exe -X POST \
+          curl -X POST \
             "https://fastdelivery-x0ce.onrender.com/api/maintenance/cleanup-old-orders" \
             -H "x-cron-secret: $CRON_SECRET"
