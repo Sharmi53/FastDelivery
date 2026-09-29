@@ -78,7 +78,44 @@ app.get('/api/health', async (req, res) => {
 app.get('/', (req, res) => {
   res.send('FastDelivery Grocery Backend is running. Visit /api/health to check database status.');
 });
+// Protected endpoint for automatic old-order cleanup
+app.post('/api/maintenance/cleanup-old-orders', async (req, res) => {
+  try {
+    const cronSecret = process.env.CRON_SECRET;
 
+    if (!cronSecret) {
+      return res.status(500).json({
+        success: false,
+        message: 'CRON_SECRET is not configured'
+      });
+    }
+
+    const providedSecret = req.headers['x-cron-secret'];
+
+    if (providedSecret !== cronSecret) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+
+    const cleanupOldOrders = require('./jobs/cleanupOldOrders');
+
+    await cleanupOldOrders();
+
+    return res.json({
+      success: true,
+      message: 'Old order cleanup completed'
+    });
+  } catch (error) {
+    console.error('❌ Cleanup endpoint failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Cleanup failed'
+    });
+  }
+});
 // ── Start server ─────────────────────────────────────────────
 app.listen(PORT, async () => {
   console.log(`🚀  Backend server running on http://localhost:${PORT}`);
