@@ -827,12 +827,17 @@ router.put(
 
         SET
           order_status = ?,
-          updated_at = NOW()
+          updated_at = NOW(),
+          delivered_at = CASE
+            WHEN ? = 'delivered' THEN NOW()
+            ELSE delivered_at
+          END
 
         WHERE id = ?
           AND delivery_partner_id = ?
-        `,
+          `,
         [
+          status,
           status,
           req.params.orderId,
           req.user.id
@@ -850,9 +855,9 @@ router.put(
       // CREATE CUSTOMER NOTIFICATION FOR STATUS CHANGE
       // -------------------------------------------------
       const notificationMessages = {
-        picked_up:        'Your order ORDER_NUM has been picked up by the delivery partner.',
+        picked_up: 'Your order ORDER_NUM has been picked up by the delivery partner.',
         out_for_delivery: 'Your order ORDER_NUM is out for delivery.',
-        delivered:        'Your order ORDER_NUM has been delivered.'
+        delivered: 'Your order ORDER_NUM has been delivered.'
       };
 
       if (notificationMessages[status]) {
