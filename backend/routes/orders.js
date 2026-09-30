@@ -6,6 +6,7 @@ const {
   authenticateToken,
   authorizeRoles
 } = require('../middleware/authMiddleware');
+const { sendAdminNewOrderEmail } = require('../utils/email');
 // =====================================
 // GET SINGLE ORDER DETAILS WITH ITEMS
 // =====================================
@@ -420,6 +421,40 @@ router.post(
         orderId,
         orderNumber,
         userId
+      });
+
+      // ==========================================
+      // 7. SEND ADMIN EMAIL NOTIFICATION
+      // Non-blocking: email failure must NEVER affect the order.
+      // ==========================================
+      // Fetch customer name from the JWT token (req.user) if available,
+      // otherwise fall back to the address name provided.
+      const customerName = (req.user && req.user.name) ? req.user.name : (address.fullName || 'Customer');
+      const customerEmail = (req.user && req.user.email) ? req.user.email : '';
+      const customerPhone = (req.user && req.user.phone) ? req.user.phone : (address.phone || '');
+
+
+      sendAdminNewOrderEmail({
+        orderNumber,
+        orderId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        orderDate: new Date().toISOString(),
+        items: orderItems,
+        subtotal: subtotal.toFixed(2),
+        deliveryCharge: deliveryCharge.toFixed(2),
+        discount: discountAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        paymentMethod,
+        paymentStatus,
+        orderStatus: 'placed',
+        address
+      }).then(() => {
+        console.log(`✅  Admin email sent for order ${orderNumber}`);
+      }).catch((emailErr) => {
+        // Log the failure — do NOT re-throw so order remains unaffected
+
       });
 
       res.status(201).json({
