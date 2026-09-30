@@ -7,12 +7,12 @@ export default function HeroBanner() {
     <div className="hero-banner">
       <div className="hero-content">
         <span className="hero-tag">
-          <Sparkles size={14} inline="true" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+          <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
           Freshness Guaranteed
         </span>
-        <h1 className="hero-title">Farm-Fresh Groceries </h1>
+        <h1 className="hero-title">Farm-Fresh Groceries Delivered Fast</h1>
         <p className="hero-subtitle">
-          Shop daily organic fruits, crisp vegetables, dairy essentials & household products at the lowest prices.
+          Shop daily organic fruits, crisp vegetables, dairy essentials &amp; household products at the lowest prices.
         </p>
         <Link to="/products" className="hero-btn">
           <span>Shop Now</span>
@@ -20,11 +20,18 @@ export default function HeroBanner() {
         </Link>
       </div>
 
-      <div className="hero-image" style={{ display: 'none', md: 'block' }}>
+      <div className="hero-image">
         <img
           src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80"
           alt="Grocery Basket"
-          style={{ width: '260px', height: '200px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+          style={{
+            width: '280px',
+            height: '210px',
+            objectFit: 'cover',
+            borderRadius: '16px',
+            boxShadow: '0 12px 30px rgba(0,0,0,0.22)',
+            border: '2px solid rgba(255,255,255,0.25)'
+          }}
         />
       </div>
     </div>

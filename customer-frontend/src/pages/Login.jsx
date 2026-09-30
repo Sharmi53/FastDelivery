@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -55,130 +56,129 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-card">
+        {/* Brand Header */}
+        <div className="auth-header">
+          <div className="auth-logo-wrapper">
+            <Link to="/home" title="FastDelivery Home">
+              <img
+                src={fastDeliveryLogo}
+                alt="FastDelivery Logo"
+                className="auth-logo"
+                style={{
+                  height: '56px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  borderRadius: '10px'
+                }}
+              />
+            </Link>
+          </div>
 
-      <div className="auth-header">
-
-        <div
-          style={{
-            background: 'var(--primary-light)',
-            width: '50px',
-            height: '50px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 0.75rem',
-            color: 'var(--primary-dark)'
-          }}
-        >
-          <ShoppingBag size={28} />
+          <h2 className="auth-title">Welcome Back</h2>
+          <p className="auth-subtitle">
+            Sign in to access your orders, saved addresses and grocery cart
+          </p>
         </div>
 
-        <h2 className="auth-title">Welcome Back</h2>
+        {/* Error message */}
+        {error && (
+          <div
+            className="auth-error"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
-        <p
-          style={{
-            color: 'var(--text-muted)',
-            fontSize: '0.85rem'
-          }}
-        >
-          Sign in to access your orders and grocery cart
-        </p>
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-email">
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="login-email"
+                type="email"
+                required
+                className="form-input"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ paddingLeft: '2.5rem' }}
+              />
+              <Mail
+                size={17}
+                style={{
+                  position: 'absolute',
+                  left: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--primary)'
+                }}
+              />
+            </div>
+          </div>
 
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-password">
+              Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="login-password"
+                type="password"
+                required
+                className="form-input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ paddingLeft: '2.5rem' }}
+              />
+              <Lock
+                size={17}
+                style={{
+                  position: 'absolute',
+                  left: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--primary)'
+                }}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loading}
+          >
+            {loading ? (
+              <span>Signing In...</span>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight size={18} />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          Don't have an account?{' '}
+          <Link to="/customer/register">
+            Create Account
+          </Link>
+        </div>
       </div>
-
-
-      {/* Error message */}
-      {error && (
-        <div
-          style={{
-            color: '#b91c1c',
-            background: '#fee2e2',
-            padding: '10px',
-            borderRadius: '8px',
-            marginBottom: '1rem',
-            textAlign: 'center',
-            fontSize: '0.85rem'
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-
-      <form onSubmit={handleSubmit}>
-
-        <div className="form-group">
-
-          <label className="form-label">
-            Email Address
-          </label>
-
-          <input
-            type="email"
-            required
-            className="form-input"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-        </div>
-
-
-        <div className="form-group">
-
-          <label className="form-label">
-            Password
-          </label>
-
-          <input
-            type="password"
-            required
-            className="form-input"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-        </div>
-
-
-        <button
-          type="submit"
-          className="submit-btn"
-          style={{ marginTop: '0.5rem' }}
-          disabled={loading}
-        >
-          {loading ? 'Signing In...' : 'Sign In'}
-        </button>
-
-      </form>
-
-
-      <div
-        style={{
-          textAlign: 'center',
-          marginTop: '1.2rem',
-          fontSize: '0.85rem',
-          color: 'var(--text-muted)'
-        }}
-      >
-        Don't have an account?{' '}
-
-        <Link
-          to="/customer/register"
-          style={{
-            color: 'var(--primary-dark)',
-            fontWeight: 700
-          }}
-        >
-          Create Account
-        </Link>
-
-      </div>
-
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Loader2
 } from 'lucide-react';
+import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 import './ShopContactPage.css';
 
 export default function ShopContactPage() {
@@ -140,16 +141,17 @@ export default function ShopContactPage() {
       {/* Main Clean Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm contact-clean-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/home" className="flex items-center space-x-3 text-inherit no-underline">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-emerald-600/20">
-              F
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight text-slate-900 block leading-none">
-                FAST <span className="text-emerald-600">DELIVERY</span>
-              </span>
-              <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase">Contact Center</span>
-            </div>
+          <Link to="/home" className="flex items-center text-inherit no-underline">
+            <img
+              src={fastDeliveryLogo}
+              alt="FastDelivery Logo"
+              style={{
+                maxHeight: '44px',
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block'
+              }}
+            />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
@@ -161,9 +163,9 @@ export default function ShopContactPage() {
             </Link>
             <Link
               to="/cart"
-              className="px-3.5 py-1.5 text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-1.5 text-xs sm:text-sm font-bold text-cyan-900 bg-cyan-100 hover:bg-cyan-200 rounded-lg border border-cyan-200 transition-colors flex items-center gap-1.5"
             >
-              <ShoppingCart className="w-4 h-4 text-emerald-700" />
+              <ShoppingCart className="w-4 h-4 text-cyan-700" />
               <span>Cart</span>
             </Link>
           </div>

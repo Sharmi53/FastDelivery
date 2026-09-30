@@ -56,13 +56,13 @@ export default function Cart() {
               <div style={{ flex: 1 }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.2rem' }}>{item.name}</h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.unit}</p>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary-dark)', marginTop: '0.3rem' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.3rem' }}>
                   Rs.{Number(item.price || 0).toFixed(2)}
                 </div>
               </div>
 
               {/* Quantity Controls */}
-              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: '8px', background: 'var(--primary-light)' }}>
                 <button
                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
                   style={{ padding: '0.4rem 0.6rem', background: 'none' }}

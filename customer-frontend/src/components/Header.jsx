@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRightLeft, Bell, Phone } from 'lucide-react';
+import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -179,12 +180,14 @@ export default function Header({ searchTerm, setSearchTerm }) {
       {/* Main Header */}
       <div className="header">
         <div className="header-inner">
-          {/* Logo */}
-          <Link to="/home" className="logo">
-            <div className="logo-icon">
-              <ShoppingBag size={24} />
-            </div>
-            <span>FastDelivery</span>
+          {/* Official FastDelivery Logo */}
+          <Link to="/home" className="logo" title="FastDelivery Home">
+            <img
+              src={fastDeliveryLogo}
+              alt="FastDelivery"
+              className="logo-img"
+              style={{ maxHeight: '46px', width: 'auto', objectFit: 'contain', display: 'block' }}
+            />
           </Link>
 
           {/* Search Bar */}

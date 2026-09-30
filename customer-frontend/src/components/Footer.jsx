@@ -1,20 +1,36 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Heart, Shield, Truck, Clock } from 'lucide-react';
+import { Truck, Clock } from 'lucide-react';
+import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 
 export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <ShoppingBag color="#10b981" size={28} />
-            <h3 style={{ margin: 0 }}>FastDelivery</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <img
+              src={fastDeliveryLogo}
+              alt="FastDelivery"
+              style={{
+                maxHeight: '44px',
+                width: 'auto',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                background: 'white',
+                padding: '3px 8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              }}
+            />
           </div>
-          <p>Your one-stop daily grocery & organic market. Super fast doorstep delivery </p>
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', color: '#94a3b8' }}>
-            <span><Truck size={18} /> Fast Shipping</span>
-            <span><Clock size={18} /> daily Support</span>
+          <p>Your one-stop daily grocery & organic market. Super fast doorstep delivery</p>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '1.2rem', color: '#94a3b8' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Truck size={18} color="#22d3ee" /> Fast Shipping
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Clock size={18} color="#22d3ee" /> Daily Support
+            </span>
           </div>
         </div>
 
@@ -45,7 +61,7 @@ export default function Footer() {
           <h4>Other Panels</h4>
           <ul className="footer-links">
             <li><a href="https://fast-delivery-ft2x.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#f59e0b', fontWeight: 600 }}>Admin Dashboard →</a></li>
-            <li><a href="https://fast-delivery-7fe5.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>Delivery Partner Panel →</a></li>
+            <li><a href="https://fast-delivery-7fe5.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#06b6d4', fontWeight: 600 }}>Delivery Partner Panel →</a></li>
             {/* <li><a href="http://localhost:5000/api/health" target="_blank" rel="noreferrer">Backend API Status Check</a></li> */}
           </ul>
         </div>

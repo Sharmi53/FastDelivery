@@ -233,10 +233,10 @@ export default function ProductDetails() {
               style={{
                 fontSize: '1.8rem',
                 fontWeight: 800,
-                color: 'var(--primary-dark)'
+                color: 'var(--primary)'
               }}
             >
-              ₹{product.price.toFixed(2)}
+              Rs.{product.price.toFixed(2)}
             </span>
 
             {product.originalPrice && (
@@ -247,7 +247,7 @@ export default function ProductDetails() {
                   textDecoration: 'line-through'
                 }}
               >
-                ₹{product.originalPrice.toFixed(2)}
+                Rs.{product.originalPrice.toFixed(2)}
               </span>
             )}
 

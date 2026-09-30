@@ -181,8 +181,8 @@ export default function Checkout() {
           margin: '2rem auto'
         }}
       >
-        <CheckCircle2 color="#10b981" size={60} style={{ margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Order Placed Successfully!</h2>
+        <CheckCircle2 color="var(--primary)" size={64} style={{ margin: '0 auto 1rem' }} />
+        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-brand)' }}>Order Placed Successfully!</h2>
         <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 1.5rem' }}>
           Thank you for shopping with FastDelivery. Your order{' '}
           <strong>#{createdOrder.orderNumber}</strong> has been received.
@@ -332,17 +332,18 @@ export default function Checkout() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  background: gpsStatus === 'loading' ? '#d1fae5' : '#10b981',
-                  color: 'white',
+                  background: gpsStatus === 'loading' ? 'var(--primary-light)' : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+                  color: gpsStatus === 'loading' ? 'var(--primary-dark)' : 'white',
                   border: 'none',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '7px',
+                  padding: '0.55rem 0.95rem',
+                  borderRadius: '8px',
                   fontWeight: 700,
-                  fontSize: '0.82rem',
-                  cursor: gpsStatus === 'loading' ? 'not-allowed' : 'pointer'
+                  fontSize: '0.85rem',
+                  cursor: gpsStatus === 'loading' ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 6px rgba(8, 145, 178, 0.2)'
                 }}
               >
-                <MapPin size={14} />
+                <MapPin size={15} />
                 {gpsStatus === 'loading' ? 'Getting location...' : '📍 Use Current Location'}
               </button>
             )}
@@ -471,10 +472,12 @@ export default function Checkout() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
-                padding: '0.8rem',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                cursor: 'pointer'
+                padding: '0.85rem 1rem',
+                border: formData.paymentMethod === 'cod' ? '1.5px solid var(--secondary)' : '1px solid var(--border)',
+                background: formData.paymentMethod === 'cod' ? 'var(--primary-light)' : 'white',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'var(--transition)'
               }}
             >
               <input
@@ -485,11 +488,11 @@ export default function Checkout() {
                 onChange={handleChange}
               />
               <div>
-                <strong style={{ display: 'block', fontSize: '0.9rem' }}>
-                  Cash on delivery (COD)
+                <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-brand)' }}>
+                  Cash on Delivery (COD)
                 </strong>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Pay cash when the deliver agent arrives.
+                  Pay cash or UPI scan when the delivery partner arrives.
                 </span>
               </div>
             </label>
@@ -499,10 +502,12 @@ export default function Checkout() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
-                padding: '0.8rem',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                cursor: 'pointer'
+                padding: '0.85rem 1rem',
+                border: formData.paymentMethod === 'online' ? '1.5px solid var(--secondary)' : '1px solid var(--border)',
+                background: formData.paymentMethod === 'online' ? 'var(--primary-light)' : 'white',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'var(--transition)'
               }}
             >
               <input
@@ -513,11 +518,11 @@ export default function Checkout() {
                 onChange={handleChange}
               />
               <div>
-                <strong style={{ display: 'block', fontSize: '0.9rem' }}>
+                <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-brand)' }}>
                   Online Card / UPI
                 </strong>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Online payment integration will be connected later.
+                  Instant digital payment through UPI / Card.
                 </span>
               </div>
             </label>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, ShieldCheck, Bike, ArrowRight, Store } from 'lucide-react';
+import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 import { useAuth } from '../context/AuthContext';
 
 export default function RoleSelection() {
@@ -19,25 +20,22 @@ export default function RoleSelection() {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1000px', margin: '2.5rem auto', padding: '0 1rem' }}>
       {/* Header Banner */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <div
-          style={{
-            background: 'var(--primary-light)',
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem',
-            color: 'var(--primary-dark)'
-          }}
-        >
-          <ShoppingBag size={36} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+          <img
+            src={fastDeliveryLogo}
+            alt="FastDelivery Logo"
+            style={{
+              height: '75px',
+              width: 'auto',
+              objectFit: 'contain',
+              borderRadius: '12px'
+            }}
+          />
         </div>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-brand)', marginBottom: '0.5rem' }}>
           Welcome to FastDelivery
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', maxWidth: '600px', margin: '0 auto' }}>
@@ -58,7 +56,7 @@ export default function RoleSelection() {
           onClick={() => handleSelectRole('customer')}
           style={{
             background: 'white',
-            border: '2px solid #10b981',
+            border: '2px solid var(--secondary)',
             borderRadius: '20px',
             padding: '2rem',
             cursor: 'pointer',
@@ -66,14 +64,14 @@ export default function RoleSelection() {
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)'
+            boxShadow: '0 4px 14px rgba(8, 145, 178, 0.12)'
           }}
           className="role-card-hover"
         >
           <div
             style={{
-              background: '#d1fae5',
-              color: '#059669',
+              background: 'var(--primary-light)',
+              color: 'var(--primary)',
               width: '56px',
               height: '56px',
               borderRadius: '14px',
@@ -90,7 +88,7 @@ export default function RoleSelection() {
             style={{
               fontSize: '0.75rem',
               fontWeight: 800,
-              color: '#059669',
+              color: 'var(--primary)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '0.3rem'
@@ -98,24 +96,25 @@ export default function RoleSelection() {
           >
             User Portal
           </span>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.6rem', color: 'var(--text-main)' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.6rem', color: 'var(--text-brand)' }}>
             Customer
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: '1.5', marginBottom: '1.8rem', flex: 1 }}>
-            Shop for fresh groceries, fruits, dairy, and household essentials. Place orders with 20-min express delivery.
+            Shop for fresh groceries, fruits, dairy, and household essentials. Place orders with express doorstep delivery.
           </p>
 
           <div
             style={{
-              background: '#10b981',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
               color: 'white',
-              padding: '0.8rem 1.2rem',
+              padding: '0.85rem 1.2rem',
               borderRadius: '10px',
               fontWeight: 700,
               fontSize: '0.95rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              boxShadow: '0 2px 8px rgba(8, 145, 178, 0.25)'
             }}
           >
             <span>Continue as Customer</span>

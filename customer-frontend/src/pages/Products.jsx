@@ -147,18 +147,18 @@ export default function Products() {
             minWidth: '240px'
           }}
         >
-          <SearchIcon size={18} color="var(--text-muted)" />
+          <SearchIcon size={18} color="var(--primary)" />
 
           <input
             type="text"
             placeholder="Filter product names..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="form-input"
             style={{
               width: '100%',
-              border: '1px solid var(--border)',
-              padding: '0.5rem 0.8rem',
-              borderRadius: '6px'
+              padding: '0.55rem 0.9rem',
+              fontSize: '0.9rem'
             }}
           />
         </div>
@@ -173,8 +173,8 @@ export default function Products() {
           <span
             style={{
               fontSize: '0.85rem',
-              fontWeight: 600,
-              color: 'var(--text-muted)'
+              fontWeight: 700,
+              color: 'var(--text-brand)'
             }}
           >
             Sort by:
@@ -184,10 +184,15 @@ export default function Products() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             style={{
-              padding: '0.5rem 0.8rem',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              fontSize: '0.85rem'
+              padding: '0.55rem 0.9rem',
+              borderRadius: '8px',
+              border: '1.5px solid var(--border)',
+              fontSize: '0.88rem',
+              color: 'var(--text-brand)',
+              fontWeight: 600,
+              background: '#ffffff',
+              cursor: 'pointer',
+              outline: 'none'
             }}
           >
             <option value="featured">Featured</option>
@@ -237,14 +242,12 @@ export default function Products() {
 
           <button
             onClick={fetchProducts}
+            className="submit-btn"
             style={{
               marginTop: '1rem',
-              padding: '0.7rem 1.2rem',
-              border: 'none',
-              borderRadius: '6px',
-              background: 'var(--primary)',
-              color: 'white',
-              cursor: 'pointer'
+              width: 'auto',
+              display: 'inline-flex',
+              padding: '0.65rem 1.4rem'
             }}
           >
             Try Again

@@ -108,7 +108,7 @@ export default function Home() {
               }}
             >
               <TrendingUp
-                color="#10b981"
+                color="var(--primary)"
                 size={24}
               />
 
