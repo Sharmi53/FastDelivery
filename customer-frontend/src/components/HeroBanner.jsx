@@ -10,29 +10,16 @@ export default function HeroBanner() {
           <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
           Freshness Guaranteed
         </span>
-        <h1 className="hero-title">Farm-Fresh Groceries Delivered Fast</h1>
+        <h1 className="hero-title">Craving Fresh Today? We’re Already on the Way!</h1>
         <p className="hero-subtitle">
-          Shop daily organic fruits, crisp vegetables, dairy essentials &amp; household products at the lowest prices.
+          <strong>
+            Delivery is available from 7 am to 11pm. Orders after 11pm may get cancelled or delivered next day.
+          </strong>
         </p>
         <Link to="/products" className="hero-btn">
           <span>Shop Now</span>
           <ArrowRight size={18} />
         </Link>
-      </div>
-
-      <div className="hero-image">
-        <img
-          src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80"
-          alt="Grocery Basket"
-          style={{
-            width: '280px',
-            height: '210px',
-            objectFit: 'cover',
-            borderRadius: '16px',
-            boxShadow: '0 12px 30px rgba(0,0,0,0.22)',
-            border: '2px solid rgba(255,255,255,0.25)'
-          }}
-        />
       </div>
     </div>
   );
