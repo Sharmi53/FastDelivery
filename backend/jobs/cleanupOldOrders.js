@@ -6,22 +6,22 @@ async function cleanupOldOrders() {
     try {
         await connection.beginTransaction();
 
-        // Find orders delivered 90 or more days ago
+        // Find orders delivered 60 or more days ago
         const [orders] = await connection.query(`
       SELECT id, order_number, delivered_at
       FROM orders
       WHERE order_status = 'delivered'
         AND delivered_at IS NOT NULL
-        AND delivered_at <= DATE_SUB(NOW(), INTERVAL 90 DAY)
+        AND delivered_at <= DATE_SUB(NOW(), INTERVAL 60 DAY)
     `);
 
         if (orders.length === 0) {
-            console.log('✅ No orders older than 90 days need cleanup.');
+            console.log('✅ No orders older than 60 days need cleanup.');
             await connection.commit();
             return;
         }
 
-        console.log(`🔎 Found ${orders.length} order(s) older than 90 days.`);
+        console.log(`🔎 Found ${orders.length} order(s) older than 60 days.`);
 
         if (dryRun) {
             console.log('🧪 DRY RUN: No orders will be deleted.');
