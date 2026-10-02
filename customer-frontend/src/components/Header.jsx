@@ -184,7 +184,7 @@ export default function Header({ searchTerm, setSearchTerm }) {
           <Link to="/home" className="logo" title="FastDelivery Home">
             <img
               src={fastDeliveryLogo}
-              alt="FastDelivery"
+              alt="FastDelivery Logo"
               className="logo-img"
               style={{ maxHeight: '46px', width: 'auto', objectFit: 'contain', display: 'block' }}
             />

@@ -11,7 +11,7 @@ export default function Footer() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
             <img
               src={fastDeliveryLogo}
-              alt="FastDelivery"
+              alt="FastDelivery Logo"
               style={{
                 maxHeight: '44px',
                 width: 'auto',
