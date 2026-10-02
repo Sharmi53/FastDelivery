@@ -123,7 +123,28 @@ export default function MyOrders() {
       0
     ).toFixed(2);
   };
+  const getOrderSubtotal = (order) => {
+    return Number(
+      order.subtotal ??
+      order.subtotalAmount ??
+      0
+    ).toFixed(2);
+  };
 
+  const getDeliveryCharge = (order) => {
+    return Number(
+      order.delivery_charge ??
+      order.deliveryCharge ??
+      0
+    ).toFixed(2);
+  };
+
+  const getOrderDiscount = (order) => {
+    return Number(
+      order.discount ??
+      0
+    ).toFixed(2);
+  };
   const getOrderStatus = (order) => {
     return order.order_status || order.orderStatus || 'placed';
   };
@@ -354,15 +375,31 @@ export default function MyOrders() {
                       ● {formatStatus(status)}
                     </span>
 
-                    <span
+                    <div
                       style={{
-                        fontSize: '1.1rem',
-                        fontWeight: 800,
-                        color: 'var(--primary-dark)'
+                        textAlign: 'right'
                       }}
                     >
-                      ₹{getOrderTotal(order)}
-                    </span>
+                      <div
+                        style={{
+                          fontSize: '0.72rem',
+                          color: 'var(--text-muted)',
+                          marginBottom: '0.15rem'
+                        }}
+                      >
+                        Total
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 800,
+                          color: 'var(--primary-dark)'
+                        }}
+                      >
+                        ₹{getOrderTotal(order)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -405,6 +442,77 @@ export default function MyOrders() {
                       Order items are not available.
                     </span>
                   )}
+                </div>
+
+                {/* Price breakdown */}
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '0.9rem',
+                    marginBottom: '1rem'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '0.4rem',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <span>Subtotal</span>
+                    <span>
+                      ₹{getOrderSubtotal(order)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '0.4rem',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <span>Delivery Charge</span>
+                    <span>
+                      ₹{getDeliveryCharge(order)}
+                    </span>
+                  </div>
+
+                  {Number(order.discount || 0) > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.4rem',
+                        fontSize: '0.9rem',
+                        color: '#16a34a'
+                      }}
+                    >
+                      <span>Discount</span>
+                      <span>
+                        -₹{getOrderDiscount(order)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: '0.6rem',
+                      marginTop: '0.6rem',
+                      fontWeight: 800,
+                      fontSize: '1rem'
+                    }}
+                  >
+                    <span>Total</span>
+                    <span style={{ color: 'var(--primary-dark)' }}>
+                      ₹{getOrderTotal(order)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Address and timeline */}

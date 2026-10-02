@@ -98,7 +98,7 @@ router.get(
   }
 );
 // ==========================================
-// GET LOGGED-IN CUSTOMER ORDERS
+// GET LOGGED-IN CUSTOMER ORDERS WITH ITEMS
 // ==========================================
 router.get(
   '/',
@@ -108,12 +108,14 @@ router.get(
     try {
       const userId = req.user.id;
 
+      // ------------------------------------------
+      // 1. Get all orders for the logged-in customer
+      // ------------------------------------------
       const [orders] = await pool.execute(
         `
         SELECT
           o.id,
           o.order_number,
-          DATE(o.created_at) AS date,
           o.subtotal,
           o.delivery_charge,
           o.discount,
@@ -122,6 +124,9 @@ router.get(
           o.payment_status,
           o.order_status,
           o.created_at,
+          o.updated_at,
+          o.delivered_at,
+
           a.full_name,
           a.phone,
           a.address_line,
@@ -131,21 +136,54 @@ router.get(
           a.pincode,
           a.latitude,
           a.longitude
+
         FROM orders o
+
         LEFT JOIN addresses a
           ON o.address_id = a.id
+
         WHERE o.user_id = ?
+
         ORDER BY o.created_at DESC
         `,
         [userId]
       );
 
+      // ------------------------------------------
+      // 2. Get items for each order
+      // ------------------------------------------
+      for (const order of orders) {
+        const [items] = await pool.execute(
+          `
+          SELECT
+            id,
+            order_id,
+            product_id,
+            product_name,
+            price,
+            quantity,
+            subtotal
+          FROM order_items
+          WHERE order_id = ?
+          ORDER BY id ASC
+          `,
+          [order.id]
+        );
+
+        // Attach items directly to the order
+        order.items = items;
+      }
+
+      // ------------------------------------------
+      // 3. Return orders with items
+      // ------------------------------------------
       res.json({
         success: true,
         orders
       });
+
     } catch (error) {
-      console.error('Get orders error:', error);
+      console.error('Get customer orders error:', error);
 
       res.status(500).json({
         success: false,
