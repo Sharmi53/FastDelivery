@@ -1,5 +1,6 @@
 const express = require('express');
 const Razorpay = require('razorpay');
+const crypto = require('crypto');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { pool } = require('../config/db');
 const { calculateOrderPricing } = require('../utils/orderPricing');
@@ -526,6 +527,146 @@ router.post(
         message:
           error.message ||
           'Payment confirmation failed.'
+      });
+    }
+  }
+);
+
+// ==========================================================
+// Razorpay Webhook
+// ==========================================================
+
+router.post(
+  '/webhook',
+  async (req, res) => {
+    try {
+      const webhookSignature =
+        req.headers['x-razorpay-signature'];
+
+      if (!webhookSignature) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing Razorpay webhook signature.'
+        });
+      }
+
+      if (!req.rawBody) {
+        return res.status(400).json({
+          success: false,
+          message: 'Raw webhook body is missing.'
+        });
+      }
+
+      const expectedSignature =
+        crypto
+          .createHmac(
+            'sha256',
+            process.env.RAZORPAY_WEBHOOK_SECRET
+          )
+          .update(req.rawBody)
+          .digest('hex');
+
+      if (
+        expectedSignature !== webhookSignature
+      ) {
+        console.error(
+          '❌ Invalid Razorpay webhook signature.'
+        );
+
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid webhook signature.'
+        });
+      }
+
+      const event = req.body.event;
+
+      console.log(
+        '✅ Razorpay webhook received:',
+        event
+      );
+
+      // --------------------------------------------------
+      // Payment captured
+      // --------------------------------------------------
+
+      if (
+        event === 'payment.captured'
+      ) {
+        const paymentEntity =
+          req.body.payload?.payment?.entity;
+
+        if (!paymentEntity) {
+          return res.status(400).json({
+            success: false,
+            message: 'Payment information is missing.'
+          });
+        }
+
+        const razorpayOrderId =
+          paymentEntity.order_id;
+
+        const razorpayPaymentId =
+          paymentEntity.id;
+
+        if (
+          !razorpayOrderId ||
+          !razorpayPaymentId
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              'Razorpay order or payment ID is missing.'
+          });
+        }
+
+        const {
+          finalizeOnlineOrder
+        } = require('../services/paymentService');
+
+        const result =
+          await finalizeOnlineOrder({
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature: null,
+            userId: null
+          });
+
+        console.log(
+          '✅ Razorpay webhook finalized order:',
+          result
+        );
+      }
+
+      // --------------------------------------------------
+      // Payment failed
+      // --------------------------------------------------
+
+      if (
+        event === 'payment.failed'
+      ) {
+        const paymentEntity =
+          req.body.payload?.payment?.entity;
+
+        console.log(
+          '⚠️ Razorpay payment failed:',
+          paymentEntity?.id
+        );
+      }
+
+      return res.json({
+        success: true
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ Razorpay webhook error:',
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: 'Webhook processing failed.'
       });
     }
   }
