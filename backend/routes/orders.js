@@ -249,7 +249,7 @@ router.post(
       // -----------------------------
       // Validate payment method
       // -----------------------------
-      const allowedPaymentMethods = ['cod', 'online', 'qr'];
+      const allowedPaymentMethods = ['cod', 'online'];
 
       if (!allowedPaymentMethods.includes(paymentMethod)) {
         return res.status(400).json({
