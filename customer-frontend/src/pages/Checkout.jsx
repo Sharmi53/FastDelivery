@@ -99,12 +99,14 @@ export default function Checkout() {
     }
 
     const savedUser = localStorage.getItem('grocery_user');
+
     if (!savedUser) {
       setError('Please log in before placing an order.');
       return;
     }
 
     let userData;
+
     try {
       userData = JSON.parse(savedUser);
     } catch {
@@ -122,6 +124,7 @@ export default function Checkout() {
         productId: item.id,
         quantity: Number(item.quantity)
       })),
+
       address: {
         fullName: formData.fullName,
         phone: formData.phone,
@@ -130,40 +133,244 @@ export default function Checkout() {
         city: formData.city,
         state: formData.state,
         pincode: formData.zip,
-        // GPS coordinates — null when not captured
+
         latitude: gpsLatitude,
         longitude: gpsLongitude
       },
+
       paymentMethod: formData.paymentMethod
     };
+
+    // ==========================================
+    // COD PAYMENT
+    // ==========================================
+
+    if (formData.paymentMethod === 'cod') {
+      try {
+        setIsSubmitting(true);
+
+        const response = await fetch(`${API_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userData.token}`
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        const data = await response.json();
+
+        console.log('COD order response:', data);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Failed to place order.');
+        }
+
+        setCreatedOrder(data.order);
+        setIsPlaced(true);
+        clearCart();
+
+      } catch (err) {
+        console.error('COD order error:', err);
+        setError(err.message || 'Something went wrong while placing your order.');
+
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      return;
+    }
+
+    // ==========================================
+    // RAZORPAY ONLINE PAYMENT
+    // ==========================================
 
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${API_URL}/orders`, {
+      // ------------------------------------------
+      // 1. Create Razorpay order
+      // ------------------------------------------
+
+      const paymentResponse = await fetch(`${API_URL}/payments/initiate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${userData.token}`
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          amount: Number(total)
+        })
       });
 
-      const data = await response.json();
-      console.log('Order response status:', response.status);
-      console.log('Order response data:', data);
+      const paymentData = await paymentResponse.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to place order.');
+      console.log('Razorpay initiate response:', paymentData);
+
+      if (!paymentResponse.ok || !paymentData.success) {
+        throw new Error(
+          paymentData.message || 'Unable to start online payment.'
+        );
       }
 
-      setCreatedOrder(data.order);
-      setIsPlaced(true);
-      clearCart();
+      // ------------------------------------------
+      // 2. Make sure Razorpay Checkout is loaded
+      // ------------------------------------------
+
+      if (!window.Razorpay) {
+        throw new Error(
+          'Razorpay Checkout could not be loaded. Please refresh the page and try again.'
+        );
+      }
+
+      // ------------------------------------------
+      // 3. Razorpay Checkout options
+      // ------------------------------------------
+
+      const options = {
+        key: paymentData.keyId,
+
+        amount: paymentData.amount,
+
+        currency: paymentData.currency,
+
+        name: 'FastDelivery',
+
+        description: 'Grocery Order Payment',
+
+        order_id: paymentData.orderId,
+
+
+        theme: {
+          color: '#0891b2'
+        },
+
+        handler: async function (razorpayResponse) {
+
+          try {
+            // --------------------------------------
+            // 4. Verify Razorpay payment
+            // --------------------------------------
+
+            const verifyResponse = await fetch(
+              `${API_URL}/payments/verify`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${userData.token}`
+                },
+                body: JSON.stringify({
+                  razorpay_order_id:
+                    razorpayResponse.razorpay_order_id,
+
+                  razorpay_payment_id:
+                    razorpayResponse.razorpay_payment_id,
+
+                  razorpay_signature:
+                    razorpayResponse.razorpay_signature
+                })
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            console.log('Razorpay verification response:', verifyData);
+
+            if (!verifyResponse.ok || !verifyData.success) {
+              throw new Error(
+                verifyData.message || 'Payment verification failed.'
+              );
+            }
+
+            // --------------------------------------
+            // 5. Payment verified → create order
+            // --------------------------------------
+
+            const orderResponse = await fetch(`${API_URL}/orders`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${userData.token}`
+              },
+              body: JSON.stringify({
+                ...orderData,
+
+                paymentMethod: 'online',
+
+                razorpayOrderId:
+                  razorpayResponse.razorpay_order_id,
+
+                razorpayPaymentId:
+                  razorpayResponse.razorpay_payment_id,
+
+                razorpaySignature:
+                  razorpayResponse.razorpay_signature
+              })
+            });
+
+            const orderResult = await orderResponse.json();
+
+            console.log('Online order response:', orderResult);
+
+            if (!orderResponse.ok || !orderResult.success) {
+              throw new Error(
+                orderResult.message || 'Payment succeeded but order creation failed.'
+              );
+            }
+
+            setCreatedOrder(orderResult.order);
+            setIsPlaced(true);
+            clearCart();
+
+          } catch (err) {
+            console.error('Online payment/order error:', err);
+            setError(
+              err.message ||
+              'Payment verification failed. Please contact support.'
+            );
+
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            console.log('Razorpay payment window closed.');
+            setIsSubmitting(false);
+            setError('Payment was cancelled.');
+          }
+        }
+      };
+
+      // ------------------------------------------
+      // 6. Open Razorpay
+      // ------------------------------------------
+
+      const razorpay = new window.Razorpay(options);
+
+      razorpay.on('payment.failed', function (response) {
+        console.error('Razorpay payment failed:', response.error);
+
+        setIsSubmitting(false);
+
+        setError(
+          response.error?.description ||
+          'Payment failed. Please try again.'
+        );
+      });
+
+      razorpay.open();
+
     } catch (err) {
-      console.error('Place order error:', err);
-      setError(err.message || 'Something went wrong while placing your order.');
-    } finally {
+      console.error('Razorpay payment initiation error:', err);
+
+      setError(
+        err.message ||
+        'Unable to start online payment.'
+      );
+
       setIsSubmitting(false);
     }
   };

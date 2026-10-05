@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 
 const { pool } = require('../config/db');
@@ -212,7 +213,10 @@ router.post(
         items,
         address,
         paymentMethod = 'cod',
-        discount = 0
+        discount = 0,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature
       } = req.body;
       // -----------------------------
       // Validate cart items
@@ -253,7 +257,29 @@ router.post(
           message: 'Invalid payment method.'
         });
       }
+      // ------------------------------------------
+      // Verify Razorpay payment for online orders
+      // ------------------------------------------
+      if (paymentMethod === 'online') {
+        if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+          return res.status(400).json({
+            success: false,
+            message: 'Missing Razorpay payment details.'
+          });
+        }
 
+        const generatedSignature = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+          .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+          .digest('hex');
+
+        if (generatedSignature !== razorpaySignature) {
+          return res.status(400).json({
+            success: false,
+            message: 'Razorpay payment verification failed.'
+          });
+        }
+      }
       await connection.beginTransaction();
 
       // ==========================================
@@ -375,8 +401,7 @@ router.post(
         Math.floor(Math.random() * 10);
 
       const paymentStatus =
-        paymentMethod === 'cod' ? 'pending' : 'pending';
-
+        paymentMethod === 'cod' ? 'pending' : 'paid';
       // ==========================================
       // 5. INSERT INTO ORDERS
       // ==========================================
