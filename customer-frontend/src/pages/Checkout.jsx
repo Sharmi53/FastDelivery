@@ -199,7 +199,8 @@ export default function Checkout() {
           Authorization: `Bearer ${userData.token}`
         },
         body: JSON.stringify({
-          amount: Number(total)
+          items: cartItems,
+          address: orderData.address
         })
       });
 
@@ -238,7 +239,7 @@ export default function Checkout() {
 
         description: 'Grocery Order Payment',
 
-        order_id: paymentData.orderId,
+        order_id: paymentData.razorpayOrderId,
 
 
         theme: {
@@ -253,7 +254,7 @@ export default function Checkout() {
             // --------------------------------------
 
             const verifyResponse = await fetch(
-              `${API_URL}/payments/verify`,
+              `${API_URL}/payments/confirm`,
               {
                 method: 'POST',
                 headers: {
@@ -284,42 +285,10 @@ export default function Checkout() {
             }
 
             // --------------------------------------
-            // 5. Payment verified → create order
+            // 5. Payment confirmed → order finalized
             // --------------------------------------
 
-            const orderResponse = await fetch(`${API_URL}/orders`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userData.token}`
-              },
-              body: JSON.stringify({
-                ...orderData,
-
-                paymentMethod: 'online',
-
-                razorpayOrderId:
-                  razorpayResponse.razorpay_order_id,
-
-                razorpayPaymentId:
-                  razorpayResponse.razorpay_payment_id,
-
-                razorpaySignature:
-                  razorpayResponse.razorpay_signature
-              })
-            });
-
-            const orderResult = await orderResponse.json();
-
-            console.log('Online order response:', orderResult);
-
-            if (!orderResponse.ok || !orderResult.success) {
-              throw new Error(
-                orderResult.message || 'Payment succeeded but order creation failed.'
-              );
-            }
-
-            setCreatedOrder(orderResult.order);
+            setCreatedOrder(verifyData.order);
             setIsPlaced(true);
             clearCart();
 

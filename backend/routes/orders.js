@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const Razorpay = require('razorpay');
 const router = express.Router();
 
 const { pool } = require('../config/db');
@@ -8,6 +9,12 @@ const {
   authorizeRoles
 } = require('../middleware/authMiddleware');
 const { sendAdminNewOrderEmail } = require('../utils/email');
+const { calculateOrderPricing } = require('../utils/orderPricing');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 // =====================================
 // GET SINGLE ORDER DETAILS WITH ITEMS
 // =====================================
@@ -213,7 +220,6 @@ router.post(
         items,
         address,
         paymentMethod = 'cod',
-        discount = 0,
         razorpayOrderId,
         razorpayPaymentId,
         razorpaySignature
@@ -322,76 +328,39 @@ router.post(
       const addressId = addressResult.insertId;
 
       // ==========================================
-      // 2. GET CURRENT PRODUCT PRICES
+      // 2. CALCULATE TRUSTED ORDER PRICING
       // ==========================================
-      let subtotal = 0;
-      const orderItems = [];
-
-      for (const item of items) {
-        const productId = Number(item.productId || item.id);
-        const quantity = Number(item.quantity);
-
-        if (!productId || !quantity || quantity < 1) {
-          throw new Error('Invalid product or quantity in cart.');
-        }
-
-        const [products] = await connection.execute(
-          `
-          SELECT
-            id,
-            name,
-            price,
-            stock_quantity,
-            status
-          FROM products
-          WHERE id = ?
-          LIMIT 1
-          `,
-          [productId]
+      const {
+        orderItems,
+        subtotal,
+        deliveryCharge,
+        discountAmount,
+        totalAmount
+      } = await calculateOrderPricing(
+        connection,
+        items,
+        0
+      );
+      // ==========================================
+      // VERIFY RAZORPAY ORDER AMOUNT
+      // ==========================================
+      if (paymentMethod === 'online') {
+        const razorpayOrder = await razorpay.orders.fetch(
+          razorpayOrderId
         );
 
-        if (products.length === 0) {
-          throw new Error(`Product ${productId} was not found.`);
-        }
+        const expectedAmountInPaise = Math.round(
+          totalAmount * 100
+        );
 
-        const product = products[0];
-        const productPrice = Number(product.price);
-        const availableStock = Number(product.stock_quantity);
-
-        if (product.status !== 'active') {
-          throw new Error(`${product.name} is currently unavailable.`);
-        }
-
-        if (availableStock < quantity) {
+        if (
+          Number(razorpayOrder.amount) !== expectedAmountInPaise
+        ) {
           throw new Error(
-            `Only ${availableStock} unit(s) of ${product.name} are available.`
+            'Razorpay payment amount does not match the order total.'
           );
         }
-
-        const itemSubtotal = productPrice * quantity;
-
-        subtotal += itemSubtotal;
-
-        orderItems.push({
-          productId: product.id,
-          productName: product.name,
-          price: productPrice,
-          quantity,
-          subtotal: itemSubtotal
-        });
       }
-
-      // ==========================================
-      // 3. CALCULATE DELIVERY AND TOTAL
-      // ==========================================
-      const deliveryCharge = subtotal >= 150 ? 0 : 30;
-      const discountAmount = Math.max(0, Number(discount) || 0);
-
-      const totalAmount = Math.max(
-        0,
-        subtotal + deliveryCharge - discountAmount
-      );
-
       // ==========================================
       // 4. GENERATE ORDER NUMBER
       // ==========================================
@@ -438,7 +407,51 @@ router.post(
       );
 
       const orderId = orderResult.insertId;
+      // ==========================================
+      // 5A. INSERT PAYMENT RECORD
+      // ==========================================
+      if (paymentMethod === 'online') {
+        const [existingPayment] = await connection.execute(
+          `
+          SELECT id
+          FROM payments
+          WHERE razorpay_order_id = ?
+          LIMIT 1
+          `,
+          [razorpayOrderId]
+        );
 
+        if (existingPayment.length > 0) {
+          throw new Error(
+            'This Razorpay payment has already been used.'
+          );
+        }
+
+        await connection.execute(
+          `
+          INSERT INTO payments (
+            order_id,
+            payment_method,
+            transaction_id,
+            razorpay_order_id,
+            amount,
+            payment_status,
+            paid_at,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+          `,
+          [
+            orderId,
+            'online',
+            razorpayPaymentId,
+            razorpayOrderId,
+            totalAmount.toFixed(2),
+            'paid'
+          ]
+        );
+      }
       // ==========================================
       // 6. INSERT INTO ORDER_ITEMS
       // ==========================================
