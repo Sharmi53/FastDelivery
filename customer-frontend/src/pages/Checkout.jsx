@@ -419,10 +419,8 @@ export default function Checkout() {
           <div style={{ marginBottom: '0.5rem' }}>
             <strong>Payment Method:</strong>{' '}
             {formData.paymentMethod === 'cod'
-              ? 'Cash / UPI on Delivery'
-              : formData.paymentMethod === 'qr'
-                ? 'QR Payment'
-                : 'Online Payment'}
+              ? 'Cash on Delivery'
+              : 'Online Payment'}
           </div>
           <div>
             <strong>Total Payable:</strong> Rs.{Number(createdOrder.totalAmount || 0).toFixed(2)}

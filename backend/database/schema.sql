@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_charge DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
   discount        DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
   total_amount    DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-  payment_method  ENUM('cod','online','qr') NOT NULL DEFAULT 'cod',
+  payment_method  ENUM('cod','online') NOT NULL DEFAULT 'cod',
   payment_status  ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
   order_status    ENUM(
     'placed','confirmed','preparing','ready_for_pickup',
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE TABLE IF NOT EXISTS payments (
   id              INT UNSIGNED    NOT NULL AUTO_INCREMENT,
   order_id        INT UNSIGNED    NOT NULL,
-  payment_method  ENUM('cod','online','qr') NOT NULL,
+  payment_method  ENUM('cod','online') NOT NULL,
   transaction_id  VARCHAR(150)    NULL COMMENT 'Gateway transaction ID (future use)',
   amount          DECIMAL(10,2)   NOT NULL,
   payment_status  ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
