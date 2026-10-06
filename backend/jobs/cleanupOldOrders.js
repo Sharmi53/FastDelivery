@@ -41,14 +41,25 @@ async function cleanupOldOrders() {
         console.log(`🗑️ Deleting ${orders.length} old order(s).`);
 
         for (const order of orders) {
-            // order_items must be deleted first because
-            // the foreign key uses ON DELETE RESTRICT.
+            // 1. Delete order_items first (ON DELETE RESTRICT).
             await connection.query(
                 `DELETE FROM order_items WHERE order_id = ?`,
                 [order.id]
             );
 
-            // Then delete the order itself.
+            // 2. Delete payments (ON DELETE RESTRICT).
+            await connection.query(
+                `DELETE FROM payments WHERE order_id = ?`,
+                [order.id]
+            );
+
+            // 3. Delete delivery_assignments (ON DELETE RESTRICT).
+            await connection.query(
+                `DELETE FROM delivery_assignments WHERE order_id = ?`,
+                [order.id]
+            );
+
+            // 4. Delete the order itself.
             // Related notifications will automatically
             // have order_id changed to NULL because
             // notifications uses ON DELETE SET NULL.
