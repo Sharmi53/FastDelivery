@@ -257,6 +257,7 @@ export default function App() {
         distance: 'Not available',
         estTime: 'Not available',
         payout: `₹${Number(order.total_amount || 0).toFixed(2)}`,
+        paymentMethod: order.payment_method || '',
         itemsCount: Number(order.total_items || 0),
 
         status: order.order_status
@@ -853,7 +854,11 @@ export default function App() {
                       color: 'var(--text-muted)'
                     }}
                   >
-                    Payment: {order.paymentMethod}
+                    Payment: {order.paymentMethod
+                      ? order.paymentMethod.toLowerCase() === 'cod'
+                        ? 'COD'
+                        : order.paymentMethod.charAt(0).toUpperCase() + order.paymentMethod.slice(1).toLowerCase()
+                      : '—'}
                   </span>
                 </div>
 
@@ -1101,7 +1106,12 @@ export default function App() {
                     display: 'block'
                   }}
                 >
-                  {order.itemsCount} Items • Payout {order.payout}
+                  {order.itemsCount} Items • Payout {order.payout} • Payment:{' '}
+                  {order.paymentMethod
+                    ? order.paymentMethod.toLowerCase() === 'cod'
+                      ? 'COD'
+                      : order.paymentMethod.charAt(0).toUpperCase() + order.paymentMethod.slice(1).toLowerCase()
+                    : '—'}
                 </span>
               </div>
 

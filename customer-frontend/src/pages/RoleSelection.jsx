@@ -38,9 +38,15 @@ export default function RoleSelection() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-brand)', marginBottom: '0.5rem' }}>
           Welcome to FastDelivery
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', maxWidth: '600px', margin: '0 auto 0.5rem' }}>
           Please select your portal role to continue.
         </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500, margin: '0 auto' }}>
+          Currently offering delivery services in <strong>Hingalganj</strong>, <strong>Hasnabad</strong>, and <strong>Basirhat</strong>
+        </p>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', opacity: 0.85, display: 'block', marginTop: '0.25rem' }}>
+          (North 24 Parganas District, West Bengal, India)
+        </span>
       </div>
 
       {/* Role Cards Grid */}

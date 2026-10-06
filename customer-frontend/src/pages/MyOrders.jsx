@@ -513,6 +513,28 @@ export default function MyOrders() {
                       ₹{getOrderTotal(order)}
                     </span>
                   </div>
+
+                  {/* Payment Method */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginTop: '0.5rem',
+                      fontSize: '0.88rem'
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>Payment Method</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {(() => {
+                        const pm = (order.payment_method || order.paymentMethod || '').toLowerCase();
+                        if (pm === 'cod') return 'COD';
+                        if (pm === 'online') return 'Online';
+                        if (pm) return pm.charAt(0).toUpperCase() + pm.slice(1);
+                        return '—';
+                      })()}
+                    </span>
+                  </div>
+
                 </div>
 
                 {/* Address and timeline */}
