@@ -48,4 +48,51 @@ async function sendAdminNewOrderEmail(orderData) {
   var transporter = getTransporter();
   await transporter.sendMail({ from: '"FastDelivery Notifications" <'+process.env.SMTP_USER+'>', to: adminEmail, subject: 'New Order Placed - Order #'+orderData.orderNumber, html: buildHtml(orderData) });
 }
-module.exports = { sendAdminNewOrderEmail };
+
+// ============================================================
+// SEND PASSWORD RESET OTP EMAIL (customer forgot-password flow)
+// ============================================================
+async function sendPasswordResetOtpEmail(toEmail, otp) {
+  var transporter = getTransporter();
+  var year = new Date().getFullYear();
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
+    + '<title>FastDelivery Password Reset OTP</title></head>'
+    + '<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f3f4f6;">'
+    + '<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;"><tr><td align="center">'
+    + '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;max-width:560px;overflow:hidden;">'
+    // Header
+    + '<tr><td style="background:linear-gradient(135deg,#0ea5e9,#0284c7);padding:28px 32px;text-align:center;">'
+    + '<h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">FastDelivery</h1>'
+    + '<p style="margin:6px 0 0;color:#bae6fd;font-size:14px;">Password Reset Request</p>'
+    + '</td></tr>'
+    // Body
+    + '<tr><td style="padding:32px 32px 24px;">'
+    + '<p style="margin:0 0 16px;font-size:15px;color:#374151;">Hello,</p>'
+    + '<p style="margin:0 0 16px;font-size:15px;color:#374151;">We received a request to reset your <strong>FastDelivery</strong> account password.</p>'
+    + '<p style="margin:0 0 20px;font-size:15px;color:#374151;">Your one-time password (OTP) is:</p>'
+    // OTP box
+    + '<div style="background:#f0f9ff;border:2px dashed #0ea5e9;border-radius:10px;padding:20px;text-align:center;margin-bottom:24px;">'
+    + '<span style="font-size:38px;font-weight:800;letter-spacing:10px;color:#0284c7;font-family:monospace;">' + otp + '</span>'
+    + '</div>'
+    + '<p style="margin:0 0 16px;font-size:14px;color:#6b7280;">⏱ This OTP will expire in <strong>10 minutes</strong>.</p>'
+    + '<p style="margin:0 0 16px;font-size:14px;color:#6b7280;">If you did not request a password reset, you can safely ignore this email. Your password will not be changed.</p>'
+    + '<p style="margin:0;font-size:14px;color:#374151;">Regards,<br/><strong>FastDelivery Team</strong></p>'
+    + '</td></tr>'
+    // Footer
+    + '<tr><td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">'
+    + '<p style="margin:0;font-size:12px;color:#94a3b8;">Do not share this OTP with anyone. FastDelivery will never ask for your OTP.</p>'
+    + '<p style="margin:6px 0 0;font-size:12px;color:#94a3b8;">Copyright ' + year + ' FastDelivery.</p>'
+    + '</td></tr>'
+    + '</table></td></tr></table>'
+    + '</body></html>';
+
+  await transporter.sendMail({
+    from: '"FastDelivery" <' + process.env.SMTP_USER + '>',
+    to: toEmail,
+    subject: 'FastDelivery Password Reset OTP',
+    html: html
+  });
+}
+
+module.exports = { sendAdminNewOrderEmail, sendPasswordResetOtpEmail };
+

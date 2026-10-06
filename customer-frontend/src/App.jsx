@@ -14,6 +14,7 @@ import DeliveryLogin from './pages/DeliveryLogin';
 import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders';
 import ShopContactPage from './pages/ShopContactPage';
+import ForgotPassword from './pages/ForgotPassword';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -41,6 +42,7 @@ function AppRoutes({ searchTerm, setSearchTerm }) {
           {/* Customer Flow Routes */}
           <Route path="/customer/login" element={<Login />} />
           <Route path="/customer/register" element={<Register />} />
+          <Route path="/customer/forgot-password" element={<ForgotPassword />} />
           <Route path="/home" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetails />} />

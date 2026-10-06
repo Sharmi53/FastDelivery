@@ -156,6 +156,21 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Forgot Password link */}
+          <div style={{ textAlign: 'right', marginTop: '-0.25rem', marginBottom: '1rem' }}>
+            <Link
+              to="/customer/forgot-password"
+              style={{
+                fontSize: '0.85rem',
+                color: 'var(--primary)',
+                fontWeight: '600',
+                textDecoration: 'none'
+              }}
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
           <button
             type="submit"
             className="submit-btn"

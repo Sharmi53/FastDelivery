@@ -606,4 +606,256 @@ router.delete(
   }
 );
 
+// ============================================================
+// FORGOT PASSWORD — in-memory OTP store (no database table)
+// ============================================================
+const crypto = require('crypto');
+const { sendPasswordResetOtpEmail } = require('../utils/email');
+
+// In-memory store: email (lowercase) → { otpHash, expiresAt, attempts, createdAt }
+const passwordResetStore = new Map();
+
+// Helper: remove expired entries (called on each request + by periodic cleanup)
+function cleanExpiredOtps() {
+  const now = Date.now();
+  for (const [email, record] of passwordResetStore.entries()) {
+    if (record.expiresAt < now) {
+      passwordResetStore.delete(email);
+    }
+  }
+}
+
+// Periodic cleanup every 5 minutes — removes expired records automatically
+setInterval(cleanExpiredOtps, 5 * 60 * 1000);
+
+// =====================================
+// POST /api/auth/forgot-password
+// Step 1: Generate OTP and email it
+// =====================================
+router.post('/forgot-password', async (req, res) => {
+  // Always clean expired records first
+  cleanExpiredOtps();
+
+  try {
+    const rawEmail = req.body.email;
+
+    // --- Basic input validation ---
+    if (!rawEmail || typeof rawEmail !== 'string' || !rawEmail.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is required.'
+      });
+    }
+
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const email = rawEmail.trim().toLowerCase();
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address.'
+      });
+    }
+
+    // --- Resend cooldown: 60 seconds ---
+    const existingRecord = passwordResetStore.get(email);
+    if (existingRecord) {
+      const secondsSinceCreated = (Date.now() - existingRecord.createdAt) / 1000;
+      if (secondsSinceCreated < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceCreated);
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${waitSeconds} second${waitSeconds !== 1 ? 's' : ''} before requesting another OTP.`
+        });
+      }
+    }
+
+    // --- Generic response regardless of whether account exists ---
+    const genericMessage = 'If an account exists for this email address, a password reset OTP has been sent.';
+
+    // --- Check if a CUSTOMER account exists ---
+    const [users] = await pool.execute(
+      `SELECT id FROM users WHERE email = ? AND role = 'customer' AND status = 'active' LIMIT 1`,
+      [email]
+    );
+
+    if (users.length === 0) {
+      // Do not reveal whether the email is registered
+      return res.json({ success: true, message: genericMessage });
+    }
+
+    // --- Generate cryptographically secure 6-digit OTP ---
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    // --- Hash the OTP before storing (never store plain OTP) ---
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    // --- Store in memory (10-minute expiry) ---
+    const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+    passwordResetStore.set(email, {
+      otpHash,
+      expiresAt: Date.now() + OTP_EXPIRY_MS,
+      attempts: 0,
+      createdAt: Date.now()
+    });
+
+    // --- Send OTP email (non-blocking — failure must NOT expose whether email exists) ---
+    try {
+      await sendPasswordResetOtpEmail(email, otp);
+    } catch (emailErr) {
+      // Remove stored record so the customer can try again
+      passwordResetStore.delete(email);
+      console.error('Password reset email send error:', emailErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP email. Please try again.'
+      });
+    }
+
+    return res.json({ success: true, message: genericMessage });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again.'
+    });
+  }
+});
+
+// =====================================
+// POST /api/auth/reset-password
+// Step 2: Verify OTP and update password
+// =====================================
+router.post('/reset-password', async (req, res) => {
+  cleanExpiredOtps();
+
+  try {
+    const { email: rawEmail, otp, newPassword } = req.body;
+
+    // --- Validate input presence ---
+    if (!rawEmail || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, OTP, and new password are required.'
+      });
+    }
+
+    const email = rawEmail.trim().toLowerCase();
+
+    // --- Validate email format ---
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address.'
+      });
+    }
+
+    // --- Validate OTP format: must be exactly 6 digits ---
+    if (!/^\d{6}$/.test(otp.toString().trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP must be exactly 6 digits.'
+      });
+    }
+
+    // --- Validate new password length (minimum 6, matching signup rule) ---
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters.'
+      });
+    }
+
+    // --- Look up in-memory store ---
+    const record = passwordResetStore.get(email);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active OTP found for this email. Please request a new OTP.'
+      });
+    }
+
+    // --- Check expiration ---
+    if (Date.now() > record.expiresAt) {
+      passwordResetStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Your OTP has expired. Please request a new OTP.'
+      });
+    }
+
+    // --- Check attempt limit (max 5) ---
+    if (record.attempts >= 5) {
+      passwordResetStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new OTP.'
+      });
+    }
+
+    // --- Verify OTP against stored hash ---
+    const otpMatch = await bcrypt.compare(otp.toString().trim(), record.otpHash);
+
+    if (!otpMatch) {
+      record.attempts += 1;
+
+      // If this was the 5th wrong attempt, invalidate immediately
+      if (record.attempts >= 5) {
+        passwordResetStore.delete(email);
+        return res.status(400).json({
+          success: false,
+          message: 'Too many incorrect attempts. Please request a new OTP.'
+        });
+      }
+
+      const attemptsLeft = 5 - record.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect OTP. ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining.`
+      });
+    }
+
+    // --- OTP is valid — find the customer account ---
+    const [users] = await pool.execute(
+      `SELECT id FROM users WHERE email = ? AND role = 'customer' AND status = 'active' LIMIT 1`,
+      [email]
+    );
+
+    if (users.length === 0) {
+      passwordResetStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Account not found. Please contact support.'
+      });
+    }
+
+    // --- Hash the new password using bcryptjs (same as signup) ---
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // --- Update existing password column — NO schema change ---
+    await pool.execute(
+      `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
+      [hashedPassword, users[0].id]
+    );
+
+    // --- Invalidate the OTP immediately after use ---
+    passwordResetStore.delete(email);
+
+    return res.json({
+      success: true,
+      message: 'Password reset successful. You can now log in with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again.'
+    });
+  }
+});
+
 module.exports = router;
