@@ -7,7 +7,17 @@ const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
-
+async function refundRazorpayPayment(
+    razorpayPaymentId,
+    amountInPaise
+) {
+    return razorpay.payments.refund(
+        razorpayPaymentId,
+        {
+            amount: amountInPaise
+        }
+    );
+}
 /**
  * Verify the Razorpay checkout signature.
  */
@@ -47,6 +57,7 @@ async function finalizeOnlineOrder({
     userId = null
 }) {
     let connection;
+    let paymentCaptured = false;
 
     try {
         connection = await pool.getConnection();
@@ -222,7 +233,7 @@ async function finalizeOnlineOrder({
                 `Razorpay payment is not captured. Current status: ${razorpayPayment.status}`
             );
         }
-
+        paymentCaptured = true;
         // ==================================================
         // 11. Lock all order items
         // ==================================================
@@ -253,54 +264,168 @@ async function finalizeOnlineOrder({
                 'No order items were found for this payment.'
             );
         }
-
         // ==================================================
         // 12. Check stock safely
         // ==================================================
+
+        let stockError = null;
+
         for (const item of orderItems) {
             const [products] =
                 await connection.execute(
                     `
-          SELECT
-            id,
-            name,
-            stock_quantity,
-            status
+      SELECT
+        id,
+        name,
+        stock_quantity,
+        status
 
-          FROM products
+      FROM products
 
-          WHERE id = ?
+      WHERE id = ?
 
-          LIMIT 1
+      LIMIT 1
 
-          FOR UPDATE
-          `,
+      FOR UPDATE
+      `,
                     [item.product_id]
                 );
 
             if (products.length === 0) {
-                throw new Error(
-                    `Product ${item.product_id} was not found.`
-                );
+                stockError =
+                    `Product ${item.product_id} was not found.`;
+                break;
             }
 
             const product = products[0];
 
             if (product.status !== 'active') {
-                throw new Error(
-                    `${product.name} is currently unavailable.`
-                );
+                stockError =
+                    `${product.name} is currently unavailable.`;
+                break;
             }
 
             if (
                 Number(product.stock_quantity) <
                 Number(item.quantity)
             ) {
-                throw new Error(
-                    `Only ${product.stock_quantity} unit(s) of ${product.name} are available.`
-                );
+                stockError =
+                    `Only ${product.stock_quantity} unit(s) of ${product.name} are available.`;
+                break;
             }
         }
+
+        // ==================================================
+        // 12B. Refund if stock is unavailable
+        // ==================================================
+
+        if (stockError) {
+
+            // Roll back the current database transaction first.
+            await connection.rollback();
+
+            try {
+
+                console.log(
+                    '⚠️ Stock unavailable after Razorpay capture.'
+                );
+
+                console.log(
+                    'Reason:',
+                    stockError
+                );
+
+                console.log(
+                    'Refunding Razorpay payment:',
+                    razorpayPaymentId
+                );
+
+                // Refund the exact trusted order amount.
+                await refundRazorpayPayment(
+                    razorpayPaymentId,
+                    expectedAmountInPaise
+                );
+
+                console.log(
+                    '✅ Razorpay refund created successfully.'
+                );
+
+            } catch (refundError) {
+
+                console.error(
+                    '❌ Razorpay refund failed:',
+                    refundError
+                );
+
+                throw new Error(
+                    `Payment was captured, but the automatic refund failed. Please contact support.`
+                );
+            }
+
+            // --------------------------------------------------
+            // Update database after successful refund
+            // --------------------------------------------------
+
+            const recoveryConnection =
+                await pool.getConnection();
+
+            try {
+
+                await recoveryConnection.beginTransaction();
+
+                await recoveryConnection.execute(
+                    `
+      UPDATE payments
+
+      SET
+        payment_status = 'refunded',
+        updated_at = NOW()
+
+      WHERE razorpay_order_id = ?
+      `,
+                    [razorpayOrderId]
+                );
+
+                await recoveryConnection.execute(
+                    `
+      UPDATE orders
+
+      SET
+        payment_status = 'refunded',
+        order_status = 'cancelled',
+        updated_at = NOW()
+
+      WHERE id = ?
+      `,
+                    [orderId]
+                );
+
+                await recoveryConnection.commit();
+
+            } catch (recoveryError) {
+
+                await recoveryConnection.rollback();
+
+                console.error(
+                    '❌ Failed to update database after refund:',
+                    recoveryError
+                );
+
+                throw new Error(
+                    `Payment was refunded, but the order status could not be updated. Please contact support.`
+                );
+
+            } finally {
+
+                recoveryConnection.release();
+
+            }
+
+            throw new Error(
+                stockError
+            );
+        }
+
 
         // ==================================================
         // 13. Deduct stock
@@ -496,15 +621,116 @@ async function finalizeOnlineOrder({
             orderStatus: payment.order_status,
             totalAmount: Number(payment.total_amount)
         };
-
     } catch (error) {
+
         if (connection) {
             await connection.rollback();
+        }
+
+        // ==================================================
+        // Payment recovery
+        // ==================================================
+        //
+        // If Razorpay already captured the payment but the
+        // order finalization failed, refund the customer.
+        //
+        if (paymentCaptured) {
+
+            try {
+
+                console.log(
+                    '⚠️ Payment was captured but order finalization failed.'
+                );
+
+                console.log(
+                    'Starting automatic Razorpay refund:',
+                    razorpayPaymentId
+                );
+
+                await refundRazorpayPayment(
+                    razorpayPaymentId,
+                    expectedAmountInPaise
+                );
+
+                console.log(
+                    '✅ Automatic Razorpay refund completed.'
+                );
+
+                // Update payment/order status using
+                // a fresh database connection because
+                // the original transaction was rolled back.
+                const recoveryConnection =
+                    await pool.getConnection();
+
+                try {
+
+                    await recoveryConnection.beginTransaction();
+
+                    await recoveryConnection.execute(
+                        `
+          UPDATE payments
+
+          SET
+            payment_status = 'refunded',
+            updated_at = NOW()
+
+          WHERE id = ?
+          `,
+                        [payment.id]
+                    );
+
+                    await recoveryConnection.execute(
+                        `
+          UPDATE orders
+
+          SET
+            payment_status = 'refunded',
+            order_status = 'cancelled',
+            updated_at = NOW()
+
+          WHERE id = ?
+          `,
+                        [payment.order_id]
+                    );
+
+                    await recoveryConnection.commit();
+
+                    console.log(
+                        `✅ Order ${payment.order_number} marked as refunded/cancelled.`
+                    );
+
+                } catch (recoveryError) {
+
+                    await recoveryConnection.rollback();
+
+                    console.error(
+                        '❌ Refund succeeded but database recovery failed:',
+                        recoveryError
+                    );
+
+                } finally {
+
+                    recoveryConnection.release();
+
+                }
+
+            } catch (refundError) {
+
+                console.error(
+                    '❌ CRITICAL: Razorpay refund failed after captured payment:',
+                    refundError
+                );
+
+                // Keep the original error for the API response.
+                // The critical refund error is logged above for
+                // manual reconciliation.
+            }
         }
 
         throw error;
 
     } finally {
+
         if (connection) {
             connection.release();
         }
