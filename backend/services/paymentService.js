@@ -393,6 +393,7 @@ async function finalizeOnlineOrder({
       SET
         payment_status = 'refunded',
         order_status = 'cancelled',
+        cancelled_at = COALESCE(cancelled_at, NOW()),
         updated_at = NOW()
 
       WHERE id = ?
@@ -686,6 +687,7 @@ async function finalizeOnlineOrder({
           SET
             payment_status = 'refunded',
             order_status = 'cancelled',
+            cancelled_at = COALESCE(cancelled_at, NOW()),
             updated_at = NOW()
 
           WHERE id = ?

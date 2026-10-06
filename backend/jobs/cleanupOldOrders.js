@@ -6,13 +6,22 @@ async function cleanupOldOrders() {
     try {
         await connection.beginTransaction();
 
-        // Find orders delivered 60 or more days ago
+        // Find orders eligible for cleanup:
+        //   - DELIVERED: delivered_at >= 60 days ago
+        //   - CANCELLED: cancelled_at >= 60 days ago
         const [orders] = await connection.query(`
-      SELECT id, order_number, delivered_at
+      SELECT id, order_number, order_status, delivered_at, cancelled_at
       FROM orders
-      WHERE order_status = 'delivered'
+      WHERE (
+        order_status = 'delivered'
         AND delivered_at IS NOT NULL
         AND delivered_at <= DATE_SUB(NOW(), INTERVAL 60 DAY)
+      )
+      OR (
+        order_status = 'cancelled'
+        AND cancelled_at IS NOT NULL
+        AND cancelled_at <= DATE_SUB(NOW(), INTERVAL 60 DAY)
+      )
     `);
 
         if (orders.length === 0) {
@@ -27,10 +36,15 @@ async function cleanupOldOrders() {
             console.log('🧪 DRY RUN: No orders will be deleted.');
 
             for (const order of orders) {
+                const timestamp =
+                    order.order_status === 'cancelled'
+                        ? order.cancelled_at
+                        : order.delivered_at;
                 console.log({
                     id: order.id,
                     order_number: order.order_number,
-                    delivered_at: order.delivered_at
+                    order_status: order.order_status,
+                    retention_timestamp: timestamp
                 });
             }
 

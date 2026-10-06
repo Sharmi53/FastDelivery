@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   delivered_at    DATETIME        NULL     COMMENT 'Set when order_status is updated to delivered; used for 60-day retention cleanup',
+  cancelled_at    DATETIME        NULL     COMMENT 'Set when order_status is updated to cancelled; used for 60-day retention cleanup',
   PRIMARY KEY (id),
   UNIQUE KEY uq_orders_number (order_number),
   CONSTRAINT fk_orders_user

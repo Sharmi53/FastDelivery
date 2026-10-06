@@ -658,10 +658,16 @@ router.put(
       const [result] = await pool.query(
         `
         UPDATE orders
-        SET order_status = ?, updated_at = NOW()
+        SET
+          order_status = ?,
+          updated_at = NOW(),
+          cancelled_at = CASE
+            WHEN ? = 'cancelled' THEN COALESCE(cancelled_at, NOW())
+            ELSE cancelled_at
+          END
         WHERE id = ?
         `,
-        [status, id]
+        [status, status, id]
       );
 
       if (result.affectedRows === 0) {
