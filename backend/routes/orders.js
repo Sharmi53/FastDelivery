@@ -962,49 +962,6 @@ router.put(
         });
       }
 
-      // -------------------------------------------------
-      // CREATE CUSTOMER NOTIFICATION FOR STATUS CHANGE
-      // -------------------------------------------------
-      const notificationMessages = {
-        picked_up: 'Your order ORDER_NUM has been picked up by the delivery partner.',
-        out_for_delivery: 'Your order ORDER_NUM is out for delivery.',
-        delivered: 'Your order ORDER_NUM has been delivered.'
-      };
-
-      if (notificationMessages[status]) {
-        try {
-          // Look up the customer (user_id) and order_number for this order
-          const [orderRows] = await pool.query(
-            'SELECT user_id, order_number FROM orders WHERE id = ?',
-            [req.params.orderId]
-          );
-
-          if (orderRows.length > 0) {
-            const { user_id, order_number } = orderRows[0];
-
-            const message = notificationMessages[status].replace(
-              'ORDER_NUM',
-              order_number
-            );
-
-            await pool.query(
-              `INSERT INTO notifications
-                 (user_id, order_id, title, message, type, is_read, created_at)
-               VALUES (?, ?, ?, ?, 'delivery_update', 0, NOW())`,
-              [
-                user_id,
-                req.params.orderId,
-                'Delivery Update',
-                message
-              ]
-            );
-          }
-        } catch (notifError) {
-          // Log but don't fail the status update response
-          console.error('Failed to create delivery notification:', notifError);
-        }
-      }
-
       res.json({
         success: true,
         message: 'Order status updated successfully'

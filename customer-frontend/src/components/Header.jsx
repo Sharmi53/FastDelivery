@@ -1,24 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRightLeft, Bell, Phone } from 'lucide-react';
+import { Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRightLeft, Phone } from 'lucide-react';
 import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-
-const API_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5000/api';
 
 export default function Header({ searchTerm, setSearchTerm }) {
   const { cartCount } = useCart();
   const { user, isAuthenticated, logout, selectedRole, clearRole } = useAuth();
   const navigate = useNavigate();
-
-  // Notification state
-  const [notifications, setNotifications] = useState([]);
-  const [notifLoading, setNotifLoading] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const notifRef = useRef(null);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -30,117 +20,6 @@ export default function Header({ searchTerm, setSearchTerm }) {
   const handleSwitchRole = () => {
     clearRole();
     navigate('/');
-  };
-
-  // Fetch notifications when user is authenticated
-  const fetchNotifications = async () => {
-    const storedUser = localStorage.getItem('grocery_user');
-    if (!storedUser) return;
-
-    try {
-      const userData = JSON.parse(storedUser);
-      if (!userData.token) return;
-
-      setNotifLoading(true);
-
-      const response = await fetch(`${API_URL}/notifications`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${userData.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setNotifications(data.notifications || []);
-      }
-    } catch (err) {
-      console.error('Fetch notifications error:', err);
-    } finally {
-      setNotifLoading(false);
-    }
-  };
-
-  // Mark a notification as read
-  const markAsRead = async (notifId) => {
-    const storedUser = localStorage.getItem('grocery_user');
-    if (!storedUser) return;
-
-    try {
-      const userData = JSON.parse(storedUser);
-      if (!userData.token) return;
-
-      const response = await fetch(`${API_URL}/notifications/${notifId}/read`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${userData.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Update locally without refetching
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notifId ? { ...n, is_read: 1 } : n
-          )
-        );
-      }
-    } catch (err) {
-      console.error('Mark notification read error:', err);
-    }
-  };
-
-  // Fetch on mount & when auth changes
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchNotifications();
-    } else {
-      setNotifications([]);
-    }
-  }, [isAuthenticated]);
-
-  // Refetch when dropdown opens
-  useEffect(() => {
-    if (notifOpen && isAuthenticated) {
-      fetchNotifications();
-    }
-  }, [notifOpen]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setNotifOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  // Format timestamp
-  const formatTime = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-      const diffHrs = Math.floor(diffMins / 60);
-      if (diffHrs < 24) return `${diffHrs} hour${diffHrs > 1 ? 's' : ''} ago`;
-      const diffDays = Math.floor(diffHrs / 24);
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } catch {
-      return '';
-    }
   };
 
   return (
@@ -210,56 +89,6 @@ export default function Header({ searchTerm, setSearchTerm }) {
 
             {isAuthenticated ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {/* Notification Bell */}
-                <div className="notif-wrapper" ref={notifRef}>
-                  <button
-                    className="nav-btn nav-btn-outline notif-bell-btn"
-                    onClick={() => setNotifOpen((prev) => !prev)}
-                    title="Notifications"
-                  >
-                    <Bell size={16} />
-                    {unreadCount > 0 && (
-                      <span className="notif-badge">{unreadCount}</span>
-                    )}
-                  </button>
-
-                  {/* Notification Dropdown */}
-                  {notifOpen && (
-                    <div className="notif-dropdown">
-                      <div className="notif-dropdown-header">
-                        <span className="notif-dropdown-title">Notifications</span>
-                        {unreadCount > 0 && (
-                          <span className="notif-unread-count">{unreadCount} new</span>
-                        )}
-                      </div>
-
-                      <div className="notif-dropdown-list">
-                        {notifLoading ? (
-                          <div className="notif-empty">Loading...</div>
-                        ) : notifications.length === 0 ? (
-                          <div className="notif-empty">No notifications yet.</div>
-                        ) : (
-                          notifications.map((notif) => (
-                            <div
-                              key={notif.id}
-                              className={`notif-item ${!notif.is_read ? 'notif-unread' : ''}`}
-                              onClick={() => {
-                                if (!notif.is_read) {
-                                  markAsRead(notif.id);
-                                }
-                              }}
-                            >
-                              <div className="notif-item-title">{notif.title}</div>
-                              <div className="notif-item-message">{notif.message}</div>
-                              <div className="notif-item-time">{formatTime(notif.created_at)}</div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 <Link to="/orders" className="nav-btn nav-btn-outline">
                   <User size={16} />
                   <span>My Orders</span>

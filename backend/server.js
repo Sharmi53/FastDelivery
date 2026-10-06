@@ -36,7 +36,6 @@ const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
 const deliveryRoutes = require('./routes/delivery');
-const notificationRoutes = require('./routes/notifications');
 const locationRoutes = require('./routes/location');
 const contactRoutes = require('./routes/contact');
 
@@ -47,7 +46,6 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/delivery', deliveryRoutes);
-app.use('/api/notifications', notificationRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/contact', contactRoutes);
 
