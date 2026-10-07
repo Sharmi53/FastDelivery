@@ -342,38 +342,76 @@ router.put('/:id', async (req, res) => {
 });
 // GET /api/products
 // Returns active products from MySQL with optional filters.
+// Supports optional ?limit=<n>&offset=<n> for backend pagination.
+// When limit is supplied the response also includes `total` and `hasMore`
+// so the frontend can decide whether to show a "Load More" button.
+// Without limit the full list is returned (backward-compatible).
 router.get('/', async (req, res) => {
   try {
-    const { category, search, category_id } = req.query;
+    const { category, search, category_id, limit, offset } = req.query;
 
-    // Build a dynamic WHERE clause safely using parameterised queries
-    let sql = `
-      SELECT
-        p.*,
-        c.name AS category_name
+    // --------------------------------------------------------
+    // Build the shared WHERE clause (used by both queries)
+    // --------------------------------------------------------
+    let whereClause = `
       FROM   products p
       JOIN   categories c ON c.id = p.category_id
       WHERE  p.status != 'inactive'
     `;
-    const params = [];
+    const whereParams = [];
 
     if (category_id) {
-      sql += ' AND p.category_id = ?';
-      params.push(parseInt(category_id, 10));
-    } else if (category) {
-      sql += ' AND c.name = ?';
-      params.push(category);
+      whereClause += ' AND p.category_id = ?';
+      whereParams.push(parseInt(category_id, 10));
+    } else if (category && category !== 'All Products') {
+      whereClause += ' AND c.name = ?';
+      whereParams.push(category);
     }
 
     if (search) {
-      sql += ' AND p.name LIKE ?';
-      params.push(`%${search}%`);
+      whereClause += ' AND p.name LIKE ?';
+      whereParams.push(`%${search}%`);
     }
 
-    sql += ' ORDER BY p.id ASC';
+    // --------------------------------------------------------
+    // Pagination
+    // --------------------------------------------------------
+    const usePagination = limit !== undefined && limit !== null && limit !== '';
+    const parsedLimit  = usePagination ? Math.max(1, parseInt(limit,  10)) : null;
+    const parsedOffset = usePagination ? Math.max(0, parseInt(offset || '0', 10)) : 0;
 
-    const [rows] = await pool.query(sql, params);
+    // --------------------------------------------------------
+    // Data query
+    // --------------------------------------------------------
+    let dataSql = `SELECT p.*, c.name AS category_name ${whereClause} ORDER BY p.id ASC`;
+    const dataParams = [...whereParams];
 
+    if (usePagination) {
+      dataSql += ' LIMIT ? OFFSET ?';
+      dataParams.push(parsedLimit, parsedOffset);
+    }
+
+    const [rows] = await pool.query(dataSql, dataParams);
+
+    // --------------------------------------------------------
+    // Count query (only needed when paginating)
+    // --------------------------------------------------------
+    if (usePagination) {
+      const countSql = `SELECT COUNT(*) AS total ${whereClause}`;
+      const [[{ total }]] = await pool.query(countSql, whereParams);
+
+      return res.json({
+        success: true,
+        source: 'mysql',
+        products: rows,
+        total,
+        hasMore: parsedOffset + rows.length < total
+      });
+    }
+
+    // --------------------------------------------------------
+    // Non-paginated (original) response — fully backward-compatible
+    // --------------------------------------------------------
     res.json({
       success: true,
       source: 'mysql',
