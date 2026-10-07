@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom';
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000/api';
+const HOME_PRODUCT_LIMIT = 8;
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] =
     useState('All Products');
@@ -16,13 +18,26 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchProducts = async () => {
       try {
+        setLoading(true);
+        const params = new URLSearchParams({
+          limit: HOME_PRODUCT_LIMIT.toString()
+        });
+
+        if (selectedCategory && selectedCategory !== 'All Products') {
+          params.set('category', selectedCategory);
+        }
+
         const response = await fetch(
-          `${API_URL}/products`
+          `${API_URL}/products?${params.toString()}`
         );
 
         const data = await response.json();
+
+        if (isCancelled) return;
 
         if (data.success && Array.isArray(data.products)) {
           setProducts(data.products);
@@ -32,24 +47,25 @@ export default function Home() {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Home products error:', error);
-        setProducts([]);
+        if (!isCancelled) {
+          console.error('Home products error:', error);
+          setProducts([]);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
-  }, []);
 
-  const filteredProducts =
-    selectedCategory === 'All Products'
-      ? products
-      : products.filter(
-        product =>
-          product.category_name === selectedCategory ||
-          product.category === selectedCategory
-      );
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCategory]);
+
+  const filteredProducts = products;
 
   return (
     <div>
@@ -143,6 +159,33 @@ export default function Home() {
               />
             ))
           )}
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '2.5rem'
+          }}
+        >
+          <Link
+            to="/products"
+            className="submit-btn"
+            style={{
+              width: 'auto',
+              padding: '0.85rem 2.5rem',
+              fontSize: '1rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              borderRadius: '12px',
+              textDecoration: 'none'
+            }}
+          >
+            <span>View All Products</span>
+            <ArrowRight size={18} />
+          </Link>
         </div>
       </section>
     </div>
