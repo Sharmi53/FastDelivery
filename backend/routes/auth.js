@@ -630,89 +630,103 @@ setInterval(cleanExpiredOtps, 5 * 60 * 1000);
 
 // =====================================
 // POST /api/auth/forgot-password
-// Step 1: Generate OTP and email it
+// Step 1: Verify name, email, phone and generate OTP
 // =====================================
 router.post('/forgot-password', async (req, res) => {
-  // Always clean expired records first
   cleanExpiredOtps();
 
   try {
-    const rawEmail = req.body.email;
+    const { name, email, phone } = req.body;
 
-    // --- Basic input validation ---
-    if (!rawEmail || typeof rawEmail !== 'string' || !rawEmail.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Full name is required.'
+      });
+    }
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Email address is required.'
       });
     }
 
-    // Basic email format check
+    if (!phone || typeof phone !== 'string' || !phone.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required.'
+      });
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const email = rawEmail.trim().toLowerCase();
-    if (!emailRegex.test(email)) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(cleanEmail)) {
       return res.status(400).json({
         success: false,
         message: 'Please enter a valid email address.'
       });
     }
 
-    // --- Resend cooldown: 60 seconds ---
-    const existingRecord = passwordResetStore.get(email);
-    if (existingRecord) {
-      const secondsSinceCreated = (Date.now() - existingRecord.createdAt) / 1000;
-      if (secondsSinceCreated < 60) {
-        const waitSeconds = Math.ceil(60 - secondsSinceCreated);
-        return res.status(429).json({
-          success: false,
-          message: `Please wait ${waitSeconds} second${waitSeconds !== 1 ? 's' : ''} before requesting another OTP.`
-        });
-      }
-    }
-
-    // --- Generic response regardless of whether account exists ---
-    const genericMessage = 'If an account exists for this email address, a password reset OTP has been sent.';
-
-    // --- Check if a CUSTOMER account exists ---
+    // Find active customer by email
     const [users] = await pool.execute(
-      `SELECT id FROM users WHERE email = ? AND role = 'customer' AND status = 'active' LIMIT 1`,
-      [email]
+      `SELECT id, name, phone FROM users WHERE email = ? AND role = 'customer' AND status = 'active' LIMIT 1`,
+      [cleanEmail]
     );
 
     if (users.length === 0) {
-      // Do not reveal whether the email is registered
-      return res.json({ success: true, message: genericMessage });
-    }
-
-    // --- Generate cryptographically secure 6-digit OTP ---
-    const otp = crypto.randomInt(100000, 1000000).toString();
-
-    // --- Hash the OTP before storing (never store plain OTP) ---
-    const otpHash = await bcrypt.hash(otp, 10);
-
-    // --- Store in memory (10-minute expiry) ---
-    const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
-    passwordResetStore.set(email, {
-      otpHash,
-      expiresAt: Date.now() + OTP_EXPIRY_MS,
-      attempts: 0,
-      createdAt: Date.now()
-    });
-
-    // --- Send OTP email (non-blocking — failure must NOT expose whether email exists) ---
-    try {
-      await sendPasswordResetOtpEmail(email, otp);
-    } catch (emailErr) {
-      // Remove stored record so the customer can try again
-      passwordResetStore.delete(email);
-      console.error('Password reset email send error:', emailErr.message);
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        message: 'Failed to send OTP email. Please try again.'
+        message: 'The provided details do not match our records.'
       });
     }
 
-    return res.json({ success: true, message: genericMessage });
+    const user = users[0];
+
+    // Verify name match (case-insensitive, trimmed)
+    const dbName = (user.name || '').trim().toLowerCase();
+    const inputName = name.trim().toLowerCase();
+    const nameMatches = dbName === inputName;
+
+    // Verify phone match (digits match or exact string match)
+    const dbPhoneDigits = (user.phone || '').replace(/\D/g, '');
+    const inputPhoneDigits = phone.trim().replace(/\D/g, '');
+    const phoneMatches =
+      (user.phone || '').trim().toLowerCase() === phone.trim().toLowerCase() ||
+      (dbPhoneDigits.length >= 7 && inputPhoneDigits.length >= 7 && (
+        dbPhoneDigits === inputPhoneDigits ||
+        dbPhoneDigits.endsWith(inputPhoneDigits) ||
+        inputPhoneDigits.endsWith(dbPhoneDigits)
+      ));
+
+    if (!nameMatches || !phoneMatches) {
+      return res.status(400).json({
+        success: false,
+        message: 'The name or phone number does not match our records for this account.'
+      });
+    }
+
+    // Generate secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    // Store hash in memory (10-minute expiry)
+    const otpHash = await bcrypt.hash(otp, 10);
+    const OTP_EXPIRY_MS = 10 * 60 * 1000;
+
+    passwordResetStore.set(cleanEmail, {
+      otpHash,
+      expiresAt: Date.now() + OTP_EXPIRY_MS,
+      attempts: 0,
+      createdAt: Date.now(),
+      verified: false
+    });
+
+    // Return the generated OTP directly in response so frontend can display it in modal
+    return res.json({
+      success: true,
+      message: 'OTP generated successfully',
+      otp: otp
+    });
 
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -724,87 +738,63 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // =====================================
-// POST /api/auth/reset-password
-// Step 2: Verify OTP and update password
+// POST /api/auth/verify-otp
+// Step 2: Verify the 6-digit OTP
 // =====================================
-router.post('/reset-password', async (req, res) => {
+router.post('/verify-otp', async (req, res) => {
   cleanExpiredOtps();
 
   try {
-    const { email: rawEmail, otp, newPassword } = req.body;
+    const { email, otp } = req.body;
 
-    // --- Validate input presence ---
-    if (!rawEmail || !otp || !newPassword) {
+    if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Email, OTP, and new password are required.'
+        message: 'Email and OTP are required.'
       });
     }
 
-    const email = rawEmail.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.toString().trim();
 
-    // --- Validate email format ---
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid email address.'
-      });
-    }
-
-    // --- Validate OTP format: must be exactly 6 digits ---
-    if (!/^\d{6}$/.test(otp.toString().trim())) {
+    if (!/^\d{6}$/.test(cleanOtp)) {
       return res.status(400).json({
         success: false,
         message: 'OTP must be exactly 6 digits.'
       });
     }
 
-    // --- Validate new password length (minimum 6, matching signup rule) ---
-    if (typeof newPassword !== 'string' || newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters.'
-      });
-    }
-
-    // --- Look up in-memory store ---
-    const record = passwordResetStore.get(email);
+    const record = passwordResetStore.get(cleanEmail);
 
     if (!record) {
       return res.status(400).json({
         success: false,
-        message: 'No active OTP found for this email. Please request a new OTP.'
+        message: 'No active OTP found. Please request a new OTP.'
       });
     }
 
-    // --- Check expiration ---
     if (Date.now() > record.expiresAt) {
-      passwordResetStore.delete(email);
+      passwordResetStore.delete(cleanEmail);
       return res.status(400).json({
         success: false,
         message: 'Your OTP has expired. Please request a new OTP.'
       });
     }
 
-    // --- Check attempt limit (max 5) ---
     if (record.attempts >= 5) {
-      passwordResetStore.delete(email);
+      passwordResetStore.delete(cleanEmail);
       return res.status(400).json({
         success: false,
         message: 'Too many incorrect attempts. Please request a new OTP.'
       });
     }
 
-    // --- Verify OTP against stored hash ---
-    const otpMatch = await bcrypt.compare(otp.toString().trim(), record.otpHash);
+    const otpMatch = await bcrypt.compare(cleanOtp, record.otpHash);
 
     if (!otpMatch) {
       record.attempts += 1;
-
-      // If this was the 5th wrong attempt, invalidate immediately
       if (record.attempts >= 5) {
-        passwordResetStore.delete(email);
+        passwordResetStore.delete(cleanEmail);
         return res.status(400).json({
           success: false,
           message: 'Too many incorrect attempts. Please request a new OTP.'
@@ -818,7 +808,85 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
-    // --- OTP is valid — find the customer account ---
+    // Mark verified
+    record.verified = true;
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully'
+    });
+
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again.'
+    });
+  }
+});
+
+// =====================================
+// POST /api/auth/reset-password
+// Step 3: Update password after OTP verification
+// =====================================
+router.post('/reset-password', async (req, res) => {
+  cleanExpiredOtps();
+
+  try {
+    const { email: rawEmail, otp, newPassword } = req.body;
+
+    if (!rawEmail || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and new password are required.'
+      });
+    }
+
+    const email = rawEmail.trim().toLowerCase();
+
+    // Validate new password length (minimum 6, matching signup rule)
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters.'
+      });
+    }
+
+    const record = passwordResetStore.get(email);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active password reset session. Please request a new OTP.'
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      passwordResetStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Session expired. Please request a new OTP.'
+      });
+    }
+
+    // Validate OTP if passed, or verify that record was already marked verified
+    if (otp) {
+      const cleanOtp = otp.toString().trim();
+      const otpMatch = await bcrypt.compare(cleanOtp, record.otpHash);
+      if (!otpMatch) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid OTP. Please verify your OTP.'
+        });
+      }
+    } else if (!record.verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP must be verified before resetting password.'
+      });
+    }
+
+    // Find the customer account
     const [users] = await pool.execute(
       `SELECT id FROM users WHERE email = ? AND role = 'customer' AND status = 'active' LIMIT 1`,
       [email]
@@ -832,16 +900,16 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
-    // --- Hash the new password using bcryptjs (same as signup) ---
+    // Hash the new password using bcrypt
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // --- Update existing password column — NO schema change ---
+    // Update password in users table
     await pool.execute(
       `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
       [hashedPassword, users[0].id]
     );
 
-    // --- Invalidate the OTP immediately after use ---
+    // Invalidate the OTP session immediately
     passwordResetStore.delete(email);
 
     return res.json({
