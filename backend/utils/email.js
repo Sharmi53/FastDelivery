@@ -1,5 +1,7 @@
 'use strict';
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
 let _transporter = null;
 function getTransporter() {
   if (_transporter) return _transporter;
@@ -10,6 +12,17 @@ function getTransporter() {
   if (!host || !user || !password) { throw new Error('Email not configured: SMTP_HOST, SMTP_USER, and SMTP_PASSWORD must be set.'); }
   _transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass: password } });
   return _transporter;
+}
+
+let _resend = null;
+function getResendClient() {
+  if (_resend) return _resend;
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY environment variable is not set.');
+  }
+  _resend = new Resend(apiKey);
+  return _resend;
 }
 function formatDateTime(d) { try { return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); } catch(e) { return String(d); } }
 function buildHtml(d) {
@@ -53,9 +66,9 @@ async function sendAdminNewOrderEmail(orderData) {
 // SEND PASSWORD RESET OTP EMAIL (customer forgot-password flow)
 // ============================================================
 async function sendPasswordResetOtpEmail(toEmail, otp) {
-  var transporter = getTransporter();
-  var year = new Date().getFullYear();
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
+  const resend = getResendClient();
+  const year = new Date().getFullYear();
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
     + '<title>FastDelivery Password Reset OTP</title></head>'
     + '<body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f3f4f6;">'
     + '<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;"><tr><td align="center">'
@@ -86,12 +99,20 @@ async function sendPasswordResetOtpEmail(toEmail, otp) {
     + '</table></td></tr></table>'
     + '</body></html>';
 
-  await transporter.sendMail({
-    from: '"FastDelivery" <' + process.env.SMTP_USER + '>',
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'FastDelivery <onboarding@resend.dev>';
+
+  const { data, error } = await resend.emails.send({
+    from: fromAddress,
     to: toEmail,
     subject: 'FastDelivery Password Reset OTP',
     html: html
   });
+
+  if (error) {
+    throw new Error(error.message || `Resend error: ${JSON.stringify(error)}`);
+  }
+
+  return data;
 }
 
 module.exports = { sendAdminNewOrderEmail, sendPasswordResetOtpEmail };
