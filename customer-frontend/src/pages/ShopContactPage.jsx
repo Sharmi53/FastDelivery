@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Clock, 
-  Copy, 
-  Check, 
-  ExternalLink, 
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Copy,
+  Check,
+  ExternalLink,
   Send,
   MessageSquare,
   Sparkles,
@@ -74,12 +74,12 @@ export default function ShopContactPage() {
 
     // 1. Record inquiry in backend database if running
     try {
-      fetch('http://localhost:5000/api/contact', {
+      fetch('https://fastdelivery-x0ce.onrender.com/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
-      }).catch(() => {});
-    } catch (_) {}
+      }).catch(() => { });
+    } catch (_) { }
 
     // 2. Dispatch email directly to amiteshsarkar1992@gmail.com
     try {
@@ -118,7 +118,7 @@ export default function ShopContactPage() {
 
   return (
     <div className="contact-page-root min-h-screen bg-slate-50 font-sans text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
-      
+
       {/* Top Announcement Bar */}
       <div className="bg-slate-900 text-white text-xs font-medium py-2 px-4 border-b border-slate-800 contact-announcement-bar">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
@@ -186,10 +186,10 @@ export default function ShopContactPage() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 contact-main-body">
-        
+
         {/* Contact Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 contact-cards-grid">
-          
+
           {/* Phone Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between contact-card">
             <div>
@@ -199,7 +199,7 @@ export default function ShopContactPage() {
               <h3 className="text-lg font-bold text-slate-900">Phone Support</h3>
               <p className="text-slate-500 text-xs mt-1">Direct line for instant orders & inquiries</p>
               <address className="not-italic mt-4">
-                <a 
+                <a
                   href={`tel:${shopInfo.phone}`}
                   className="text-lg font-bold text-emerald-600 hover:text-emerald-700 hover:underline block"
                 >
@@ -237,7 +237,7 @@ export default function ShopContactPage() {
               <h3 className="text-lg font-bold text-slate-900">Email Us</h3>
               <p className="text-slate-500 text-xs mt-1">Send us your feedback or general questions</p>
               <address className="not-italic mt-4">
-                <a 
+                <a
                   href={`mailto:${shopInfo.email}`}
                   className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline break-all block"
                 >
@@ -299,7 +299,7 @@ export default function ShopContactPage() {
               </div>
               <h3 className="text-lg font-bold text-slate-900">Store Hours</h3>
               <p className="text-slate-500 text-xs mt-1">Daily operating hours</p>
-              
+
               <ul className="mt-3 space-y-2 text-xs hours-list">
                 {shopInfo.hours.map((item, idx) => (
                   <li key={idx} className="flex justify-between items-center text-slate-700">
@@ -315,7 +315,7 @@ export default function ShopContactPage() {
 
         {/* Section: Form & Map Split Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start form-map-grid">
-          
+
           {/* Contact Form */}
           <div className="lg:col-span-6 bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm contact-form-card">
             <div className="flex items-center space-x-3 mb-6">

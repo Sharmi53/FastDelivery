@@ -6,7 +6,7 @@ import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5000/api';
+  'https://fastdelivery-x0ce.onrender.com/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');

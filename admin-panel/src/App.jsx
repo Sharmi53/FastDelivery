@@ -14,7 +14,7 @@ import {
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5000/api';
+  'https://fastdelivery-x0ce.onrender.com/api';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FastDelivery</string>
+    <string name="title_activity_main">FastDelivery</string>
+    <string name="package_name">com.fastdelivery.app</string>
+    <string name="custom_url_scheme">com.fastdelivery.app</string>
+</resources>
