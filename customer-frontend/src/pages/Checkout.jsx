@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Truck, CreditCard, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -51,17 +53,65 @@ export default function Checkout() {
   // =====================================
   // GPS: REQUEST CURRENT LOCATION
   // Only called when the customer explicitly clicks the button.
-  // Uses navigator.geolocation.getCurrentPosition — one-shot.
   // =====================================
-  const handleUseCurrentLocation = () => {
+  const handleUseCurrentLocation = async () => {
+    setGpsStatus('loading');
+    setGpsError('');
+
+    // Native Android / iOS via Capacitor Geolocation
+    if (Capacitor.isNativePlatform()) {
+      try {
+        let permStatus = await Geolocation.checkPermissions();
+
+        if (permStatus.location !== 'granted') {
+          permStatus = await Geolocation.requestPermissions();
+        }
+
+        if (permStatus.location !== 'granted') {
+          setGpsStatus('error');
+          setGpsLatitude(null);
+          setGpsLongitude(null);
+          setGpsError('Location permission denied. Please enter your address manually.');
+          return;
+        }
+
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+
+        if (position && position.coords) {
+          setGpsLatitude(position.coords.latitude);
+          setGpsLongitude(position.coords.longitude);
+          setGpsStatus('captured');
+          setGpsError('');
+        } else {
+          throw new Error('Position coordinates unavailable');
+        }
+      } catch (err) {
+        console.error('Native geolocation error:', err);
+        setGpsStatus('error');
+        setGpsLatitude(null);
+        setGpsLongitude(null);
+        const errMsg = err?.message?.toLowerCase() || '';
+        if (errMsg.includes('denied')) {
+          setGpsError('Location permission denied. Please enter your address manually.');
+        } else if (errMsg.includes('timeout')) {
+          setGpsError('Location request timed out. Please enter your address manually.');
+        } else {
+          setGpsError('Unable to access your current location. Please enter your address manually.');
+        }
+      }
+      return;
+    }
+
+    // Fallback: Standard Browser Web Geolocation
     if (!navigator.geolocation) {
       setGpsStatus('error');
       setGpsError('Your browser does not support GPS location.');
       return;
     }
-
-    setGpsStatus('loading');
-    setGpsError('');
 
     navigator.geolocation.getCurrentPosition(
       (position) => {

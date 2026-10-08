@@ -14,6 +14,41 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
+// ==========================================================
+// In-memory payment session store
+//
+// Keyed by razorpayOrderId.
+// Stores cart + address + pricing so that /confirm can
+// perform the full atomic DB insertion AFTER Razorpay
+// payment succeeds.
+//
+// Sessions expire after 2 hours (7 200 000 ms) to prevent
+// memory leaks from abandoned checkouts.
+// ==========================================================
+const paymentSessions = new Map();
+const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+function storePaymentSession(razorpayOrderId, data) {
+  paymentSessions.set(razorpayOrderId, {
+    ...data,
+    expiresAt: Date.now() + SESSION_TTL_MS
+  });
+}
+
+function getPaymentSession(razorpayOrderId) {
+  const session = paymentSessions.get(razorpayOrderId);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    paymentSessions.delete(razorpayOrderId);
+    return null;
+  }
+  return session;
+}
+
+function deletePaymentSession(razorpayOrderId) {
+  paymentSessions.delete(razorpayOrderId);
+}
+
 router.post(
   '/initiate',
   authenticateToken,
@@ -58,10 +93,7 @@ router.post(
         });
       }
 
-      connection =
-        await pool.getConnection();
-
-      await connection.beginTransaction();
+      connection = await pool.getConnection();
 
       const userId = req.user.id;
 
@@ -71,6 +103,8 @@ router.post(
       //
       // Prices come from the database.
       // Browser-provided prices are NOT trusted.
+      // Stock is validated here (early rejection).
+      // Stock is NOT deducted yet.
       //
       const {
         orderItems,
@@ -94,51 +128,13 @@ router.post(
       }
 
       // ==========================================
-      // 4. SAVE DELIVERY ADDRESS
+      // 4. CREATE RAZORPAY ORDER
       // ==========================================
-      const [addressResult] =
-        await connection.execute(
-          `
-          INSERT INTO addresses (
-            user_id,
-            full_name,
-            phone,
-            address_line,
-            landmark,
-            city,
-            state,
-            pincode,
-            latitude,
-            longitude,
-            is_default,
-            created_at,
-            updated_at
-          )
-          VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
-          )
-          `,
-          [
-            userId,
-            address.fullName,
-            address.phone,
-            address.addressLine,
-            address.landmark || '',
-            address.city,
-            address.state,
-            address.pincode,
-            address.latitude || null,
-            address.longitude || null,
-            0
-          ]
-        );
-
-      const addressId =
-        addressResult.insertId;
-
-      // ==========================================
-      // 5. GENERATE FASTDELIVERY ORDER NUMBER
-      // ==========================================
+      //
+      // No database writes happen here.
+      // The order is only created in the DB after
+      // Razorpay payment is successfully verified.
+      //
       const orderNumber =
         'ORD-' +
         Date.now()
@@ -148,192 +144,69 @@ router.post(
           Math.random() * 10
         );
 
-      // ==========================================
-      // 6. CREATE PENDING FASTDELIVERY ORDER
-      // ==========================================
-      //
-      // Payment is NOT marked paid yet.
-      // Stock is NOT reduced yet.
-      //
-      const [orderResult] =
-        await connection.execute(
-          `
-          INSERT INTO orders (
-            user_id,
-            address_id,
-            order_number,
-            subtotal,
-            delivery_charge,
-            discount,
-            total_amount,
-            payment_method,
-            payment_status,
-            order_status,
-            created_at,
-            updated_at
-          )
-          VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
-          )
-          `,
-          [
-            userId,
-            addressId,
-            orderNumber,
-            subtotal.toFixed(2),
-            deliveryCharge.toFixed(2),
-            discountAmount.toFixed(2),
-            totalAmount.toFixed(2),
-            'online',
-            'pending',
-            'placed'
-          ]
-        );
+      const amountInPaise = Math.round(totalAmount * 100);
 
-      const orderId =
-        orderResult.insertId;
+      const razorpayOrder = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: orderNumber
+      });
 
       // ==========================================
-      // 7. SAVE ORDER ITEMS
+      // 5. STORE SESSION IN MEMORY
       // ==========================================
       //
-      // These prices are snapshots of the trusted
-      // database prices at checkout time.
+      // No DB commit. Session lives only until:
+      // - /confirm succeeds (session deleted)
+      // - /confirm fails (session remains for retry)
+      // - TTL expires (garbage collected)
       //
-      for (const item of orderItems) {
-        await connection.execute(
-          `
-          INSERT INTO order_items (
-            order_id,
-            product_id,
-            product_name,
-            price,
-            quantity,
-            subtotal,
-            created_at
-          )
-          VALUES (
-            ?, ?, ?, ?, ?, ?, NOW()
-          )
-          `,
-          [
-            orderId,
-            item.productId,
-            item.productName,
-            item.price.toFixed(2),
-            item.quantity,
-            item.subtotal.toFixed(2)
-          ]
-        );
-      }
-
-      // ==========================================
-      // 8. CREATE RAZORPAY ORDER
-      // ==========================================
-      const amountInPaise =
-        Math.round(
-          totalAmount * 100
-        );
-
-      const razorpayOrder =
-        await razorpay.orders.create({
-          amount: amountInPaise,
-          currency: 'INR',
-          receipt: orderNumber
-        });
-
-      // ==========================================
-      // 9. CREATE PENDING PAYMENT RECORD
-      // ==========================================
-      //
-      // transaction_id and paid_at remain NULL.
-      //
-      await connection.execute(
-        `
-        INSERT INTO payments (
-          order_id,
-          payment_method,
-          transaction_id,
-          razorpay_order_id,
-          amount,
-          payment_status,
-          paid_at,
-          created_at,
-          updated_at
-        )
-        VALUES (
-          ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
-        )
-        `,
-        [
-          orderId,
-          'online',
-          null,
-          razorpayOrder.id,
-          totalAmount.toFixed(2),
-          'pending',
-          null
-        ]
-      );
-
-      // ==========================================
-      // 10. COMMIT EVERYTHING
-      // ==========================================
-      await connection.commit();
+      storePaymentSession(razorpayOrder.id, {
+        userId,
+        orderNumber,
+        items,
+        address,
+        orderItems,
+        subtotal,
+        deliveryCharge,
+        discountAmount,
+        totalAmount
+      });
 
       console.log(
-        'ONLINE PAYMENT INITIATED:',
+        'ONLINE PAYMENT INITIATED (no DB write):',
         {
-          orderId,
+          razorpayOrderId: razorpayOrder.id,
           orderNumber,
-          razorpayOrderId:
-            razorpayOrder.id,
           userId,
           totalAmount
         }
       );
 
       // ==========================================
-      // 11. SEND DATA TO CUSTOMER
+      // 6. SEND DATA TO CUSTOMER
       // ==========================================
       return res.json({
         success: true,
-        message:
-          'Razorpay order created successfully.',
+        message: 'Razorpay order created successfully.',
 
-        orderId,
+        razorpayOrderId: razorpayOrder.id,
 
-        orderNumber,
+        amount: razorpayOrder.amount,
 
-        razorpayOrderId:
-          razorpayOrder.id,
+        currency: razorpayOrder.currency,
 
-        amount:
-          razorpayOrder.amount,
-
-        currency:
-          razorpayOrder.currency,
-
-        keyId:
-          process.env.RAZORPAY_KEY_ID,
+        keyId: process.env.RAZORPAY_KEY_ID,
 
         pricing: {
           subtotal,
           deliveryCharge,
-          discount:
-            discountAmount,
+          discount: discountAmount,
           totalAmount
         }
       });
 
     } catch (error) {
-      // ==========================================
-      // ROLLBACK IF ANYTHING FAILS
-      // ==========================================
-      if (connection) {
-        await connection.rollback();
-      }
-
       console.error(
         'Razorpay initiation error:',
         error
@@ -428,6 +301,23 @@ router.post(
         });
       }
 
+      // ==========================================
+      // RETRIEVE SESSION
+      // ==========================================
+      //
+      // The session was stored in /initiate and contains
+      // the pre-validated items, address, and pricing.
+      //
+      const session = getPaymentSession(razorpay_order_id);
+
+      if (!session) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Payment session expired or not found. Please start checkout again.'
+        });
+      }
+
       const result =
         await finalizeOnlineOrder({
           razorpayOrderId:
@@ -439,8 +329,15 @@ router.post(
           razorpaySignature:
             razorpay_signature,
 
-          userId: req.user.id
+          userId: req.user.id,
+
+          session
         });
+
+      // ==========================================
+      // CLEAN UP SESSION AFTER SUCCESS
+      // ==========================================
+      deletePaymentSession(razorpay_order_id);
 
       const [orderRows] = await pool.execute(
         `
@@ -624,13 +521,32 @@ router.post(
           finalizeOnlineOrder
         } = require('../services/paymentService');
 
+        // Retrieve the in-memory session for this
+        // Razorpay order. The session is required to
+        // create the order record in the database.
+        const webhookSession =
+          getPaymentSession(razorpayOrderId);
+
+        if (!webhookSession) {
+          console.warn(
+            '⚠️ Webhook: No session found for Razorpay order',
+            razorpayOrderId,
+            '— skipping DB finalization (customer /confirm will handle it).'
+          );
+          return res.json({ success: true });
+        }
+
         const result =
           await finalizeOnlineOrder({
             razorpayOrderId,
             razorpayPaymentId,
             razorpaySignature: null,
-            userId: null
+            userId: null,
+            session: webhookSession
           });
+
+        // Clean up session after webhook finalization.
+        deletePaymentSession(razorpayOrderId);
 
         console.log(
           '✅ Razorpay webhook finalized order:',
