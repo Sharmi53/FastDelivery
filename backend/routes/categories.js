@@ -1,11 +1,45 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const multer = require('multer');
 
 const { pool } = require('../config/db');
 const {
   authenticateToken,
   authorizeRoles
 } = require('../middleware/authMiddleware');
+
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Multer storage configuration
+const storage = multer.memoryStorage();
+
+// File validation: allow only JPG, JPEG, PNG, WEBP
+const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
+
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file format. Only JPG, JPEG, PNG, and WEBP images are allowed.'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 
 // ======================================================
@@ -76,6 +110,76 @@ router.get(
         error: error.message
       });
     }
+  }
+);
+
+
+// ======================================================
+// UPLOAD CATEGORY IMAGE
+// URL: POST /api/categories/upload
+// Admin only
+// ======================================================
+
+router.post(
+  '/upload',
+  authenticateToken,
+  authorizeRoles('admin'),
+  (req, res) => {
+    upload.single('image')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File size exceeds the 5MB limit'
+          });
+        }
+
+        return res.status(400).json({
+          success: false,
+          message: `Upload error: ${err.message}`
+        });
+      }
+
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Failed to upload image'
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No image file provided'
+        });
+      }
+
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'fastdelivery/categories',
+          resource_type: 'image'
+        },
+        (uploadError, result) => {
+          if (uploadError) {
+            console.error('Cloudinary category upload error:', uploadError);
+
+            return res.status(500).json({
+              success: false,
+              message: 'Cloudinary upload failed'
+            });
+          }
+
+          return res.status(200).json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imageUrl: result.secure_url,
+            filename: result.public_id
+          });
+        }
+      );
+
+      uploadStream.end(req.file.buffer);
+    });
   }
 );
 

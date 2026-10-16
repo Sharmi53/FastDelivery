@@ -101,6 +101,9 @@ export default function App() {
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [categoryImage, setCategoryImage] = useState('');
+  const [categoryImageFile, setCategoryImageFile] = useState(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState('');
+  const [categoryImageUploading, setCategoryImageUploading] = useState(false);
   const [categoryStatus, setCategoryStatus] = useState('active');
   const [categorySaving, setCategorySaving] = useState(false);
 
@@ -715,12 +718,20 @@ export default function App() {
   // RESET CATEGORY FORM
   // =====================================
   const resetCategoryForm = () => {
+    if (categoryImagePreview && categoryImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
     setCategoryName('');
     setCategoryDescription('');
     setCategoryImage('');
+    setCategoryImageFile(null);
+    setCategoryImagePreview('');
+    setCategoryImageUploading(false);
     setCategoryStatus('active');
     setEditingCategory(null);
     setShowCategoryForm(false);
+    const fileInput = document.getElementById('category-image-file-input');
+    if (fileInput) fileInput.value = '';
   };
 
 
@@ -728,12 +739,21 @@ export default function App() {
   // OPEN ADD CATEGORY FORM
   // =====================================
   const openAddCategoryForm = () => {
+    if (categoryImagePreview && categoryImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
     setEditingCategory(null);
     setCategoryName('');
     setCategoryDescription('');
     setCategoryImage('');
+    setCategoryImageFile(null);
+    setCategoryImagePreview('');
+    setCategoryImageUploading(false);
     setCategoryStatus('active');
+    setCategoryError('');
     setShowCategoryForm(true);
+    const fileInput = document.getElementById('category-image-file-input');
+    if (fileInput) fileInput.value = '';
   };
 
 
@@ -741,12 +761,63 @@ export default function App() {
   // OPEN EDIT CATEGORY FORM
   // =====================================
   const openEditCategoryForm = (category) => {
+    if (categoryImagePreview && categoryImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
     setEditingCategory(category);
     setCategoryName(category.name || '');
     setCategoryDescription(category.description || '');
     setCategoryImage(category.image || '');
+    setCategoryImageFile(null);
+    setCategoryImagePreview(category.image || '');
+    setCategoryImageUploading(false);
     setCategoryStatus(category.status || 'active');
+    setCategoryError('');
     setShowCategoryForm(true);
+    const fileInput = document.getElementById('category-image-file-input');
+    if (fileInput) fileInput.value = '';
+  };
+
+
+  // =====================================
+  // CATEGORY IMAGE HANDLERS
+  // =====================================
+  const handleCategoryImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPG, JPEG, PNG, or WEBP).');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file size must be less than 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    if (categoryImagePreview && categoryImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
+
+    setCategoryImageFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setCategoryImagePreview(previewUrl);
+    setCategoryError('');
+  };
+
+  const handleRemoveCategoryImage = () => {
+    if (categoryImagePreview && categoryImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
+    setCategoryImageFile(null);
+    setCategoryImagePreview('');
+    setCategoryImage('');
+    const fileInput = document.getElementById('category-image-file-input');
+    if (fileInput) fileInput.value = '';
   };
 
 
@@ -768,10 +839,39 @@ export default function App() {
     try {
       const token = getAdminToken();
 
+      if (!token) {
+        throw new Error('Admin login token not found. Please log in again.');
+      }
+
+      let finalImageUrl = categoryImage;
+
+      // If a new image file was selected from computer, upload it first
+      if (categoryImageFile) {
+        setCategoryImageUploading(true);
+        const formData = new FormData();
+        formData.append('image', categoryImageFile);
+
+        const uploadResponse = await fetch(`${API_URL}/categories/upload`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadData.success) {
+          throw new Error(uploadData.message || 'Failed to upload category image');
+        }
+
+        finalImageUrl = uploadData.imageUrl;
+      }
+
       const categoryData = {
         name: categoryName.trim(),
         description: categoryDescription,
-        image: categoryImage,
+        image: finalImageUrl,
         status: categoryStatus
       };
 
@@ -804,6 +904,7 @@ export default function App() {
       setCategoryError(error.message);
     } finally {
       setCategorySaving(false);
+      setCategoryImageUploading(false);
     }
   };
 
@@ -1987,21 +2088,113 @@ export default function App() {
                         marginBottom: '0.4rem'
                       }}
                     >
-                      Image URL
+                      Category Image
                     </label>
 
+                    {/* Device File Selector */}
                     <input
-                      type="url"
-                      value={categoryImage}
-                      onChange={(e) => setCategoryImage(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
+                      id="category-image-file-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      onChange={handleCategoryImageFileChange}
+                      disabled={categorySaving || categoryImageUploading}
                       style={{
                         width: '100%',
-                        padding: '0.65rem',
+                        padding: '0.45rem',
                         border: '1px solid var(--border)',
-                        borderRadius: '8px'
+                        borderRadius: '8px',
+                        background: '#ffffff',
+                        fontSize: '0.82rem',
+                        cursor: (categorySaving || categoryImageUploading) ? 'not-allowed' : 'pointer'
                       }}
                     />
+
+                    {/* Image Preview & Remove Button */}
+                    {categoryImagePreview && (
+                      <div
+                        style={{
+                          marginTop: '0.6rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          background: '#ffffff',
+                          padding: '0.5rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        <img
+                          src={categoryImagePreview}
+                          alt="Category Preview"
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            border: '1px solid #e2e8f0'
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span
+                            style={{
+                              display: 'block',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: '#334155',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {categoryImageFile ? categoryImageFile.name : 'Current Image'}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                            {categoryImageFile ? `${(categoryImageFile.size / 1024).toFixed(1)} KB` : 'Attached to category'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCategoryImage}
+                          disabled={categorySaving || categoryImageUploading}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: (categorySaving || categoryImageUploading) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Optional URL fallback input */}
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <input
+                        type="url"
+                        value={categoryImage}
+                        disabled={categorySaving || categoryImageUploading}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCategoryImage(val);
+                          if (!categoryImageFile) {
+                            setCategoryImagePreview(val);
+                          }
+                        }}
+                        placeholder="Or enter image URL (optional)"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem 0.65rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem'
+                        }}
+                      />
+                    </div>
                   </div>
 
                 </div>
@@ -2072,28 +2265,31 @@ export default function App() {
 
                   <button
                     type="submit"
-                    disabled={categorySaving}
+                    disabled={categorySaving || categoryImageUploading}
                     style={{
-                      background: '#2563eb',
+                      background: (categorySaving || categoryImageUploading) ? '#93c5fd' : '#2563eb',
                       color: 'white',
                       border: 'none',
                       padding: '0.65rem 1rem',
                       borderRadius: '8px',
                       fontWeight: 700,
-                      cursor: 'pointer'
+                      cursor: (categorySaving || categoryImageUploading) ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {categorySaving
-                      ? 'Saving...'
-                      : editingCategory
-                        ? 'Update Category'
-                        : 'Save Category'}
+                    {categoryImageUploading
+                      ? 'Uploading image...'
+                      : categorySaving
+                        ? 'Saving...'
+                        : editingCategory
+                          ? 'Update Category'
+                          : 'Save Category'}
                   </button>
 
 
                   <button
                     type="button"
                     onClick={resetCategoryForm}
+                    disabled={categorySaving || categoryImageUploading}
                     style={{
                       background: '#e5e7eb',
                       color: '#111827',
@@ -2101,7 +2297,7 @@ export default function App() {
                       padding: '0.65rem 1rem',
                       borderRadius: '8px',
                       fontWeight: 700,
-                      cursor: 'pointer'
+                      cursor: (categorySaving || categoryImageUploading) ? 'not-allowed' : 'pointer'
                     }}
                   >
                     Cancel
