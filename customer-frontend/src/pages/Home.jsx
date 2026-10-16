@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import HeroBanner from '../components/HeroBanner';
 import CategoryCard from '../components/CategoryCard';
 import ProductCard from '../components/ProductCard';
-import { sampleCategories } from '../data/sampleData';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 const API_URL =
@@ -10,13 +9,51 @@ const API_URL =
   'https://fastdelivery-x0ce.onrender.com/api';
 const HOME_PRODUCT_LIMIT = 8;
 
+const ALL_PRODUCTS_PILL = { id: 'all', name: 'All Products', icon: '🛒' };
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] =
     useState('All Products');
 
+  // ── Live categories from API ────────────────────────────
+  const [categories, setCategories] = useState([ALL_PRODUCTS_PILL]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ── Fetch live categories from backend ─────────────────
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await fetch(`${API_URL}/categories`);
+        const data = await response.json();
+
+        if (isCancelled) return;
+
+        if (data.success && Array.isArray(data.categories)) {
+          // Prepend the "All Products" pill so it is always first
+          setCategories([ALL_PRODUCTS_PILL, ...data.categories]);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Home categories error:', err);
+          // Keep the default "All Products" pill on error
+        }
+      } finally {
+        if (!isCancelled) setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+
+    return () => { isCancelled = true; };
+  }, []);
+
+  // ── Fetch products whenever selected category changes ───
   useEffect(() => {
     let isCancelled = false;
 
@@ -100,14 +137,20 @@ export default function Home() {
         </div>
 
         <div className="category-grid">
-          {sampleCategories.map(cat => (
-            <CategoryCard
-              key={cat.id}
-              category={cat}
-              activeCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-          ))}
+          {categoriesLoading ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Loading categories...
+            </p>
+          ) : (
+            categories.map(cat => (
+              <CategoryCard
+                key={cat.id}
+                category={cat}
+                activeCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
+            ))
+          )}
         </div>
       </section>
 

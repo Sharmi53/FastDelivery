@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import CategoryCard from '../components/CategoryCard';
-import { sampleCategories } from '../data/sampleData';
 import { Search as SearchIcon } from 'lucide-react';
+
+const ALL_PRODUCTS_PILL = { id: 'all', name: 'All Products', icon: '🛒' };
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -22,6 +23,10 @@ export default function Products() {
   const [searchTerm,       setSearchTerm]        = useState(initialSearch);
   const [sortBy,           setSortBy]            = useState('featured');
 
+  // Live categories from backend
+  const [categories,        setCategories]        = useState([ALL_PRODUCTS_PILL]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   // Accumulated product list (Load More appends to this)
   const [products,    setProducts]    = useState([]);
   const [offset,      setOffset]      = useState(0);
@@ -35,6 +40,34 @@ export default function Products() {
   // Track the "current filters" so we can detect when they change
   // and reset pagination without a stale-closure problem.
   const filtersRef = useRef({ selectedCategory, searchTerm });
+
+  // ---------------------------------------------------------------
+  // Fetch live categories on mount
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await fetch(`${API_URL}/categories`);
+        const data = await response.json();
+
+        if (isCancelled) return;
+
+        if (data.success && Array.isArray(data.categories)) {
+          setCategories([ALL_PRODUCTS_PILL, ...data.categories]);
+        }
+      } catch (err) {
+        if (!isCancelled) console.error('Products categories error:', err);
+      } finally {
+        if (!isCancelled) setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+    return () => { isCancelled = true; };
+  }, []);
 
   // ---------------------------------------------------------------
   // Sync URL query params → state (unchanged from original behaviour)
@@ -187,14 +220,20 @@ export default function Products() {
       {/* Category filter */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div className="category-grid">
-          {sampleCategories.map((cat) => (
-            <CategoryCard
-              key={cat.id}
-              category={cat}
-              activeCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-          ))}
+          {categoriesLoading ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Loading categories...
+            </p>
+          ) : (
+            categories.map((cat) => (
+              <CategoryCard
+                key={cat.id}
+                category={cat}
+                activeCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
+            ))
+          )}
         </div>
       </div>
 
