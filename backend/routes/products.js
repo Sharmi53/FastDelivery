@@ -165,8 +165,10 @@ router.post('/', async (req, res) => {
         ? Number(stock_quantity)
         : Number(stock);
 
+    // Use submitted original_price when provided; otherwise preserve the
+    // selling price as the fallback (new product with no discount).
     const finalOriginalPrice =
-      original_price !== undefined && original_price !== ''
+      original_price !== undefined && original_price !== '' && original_price !== null
         ? Number(original_price)
         : Number(price);
 
@@ -283,10 +285,20 @@ router.put('/:id', async (req, res) => {
         ? Number(stock_quantity)
         : Number(stock);
 
-    const finalOriginalPrice =
-      original_price !== undefined && original_price !== ''
-        ? Number(original_price)
+    // For updates: when original_price is omitted from the request, fetch the
+    // current value from the DB so we never silently overwrite it.
+    let finalOriginalPrice;
+    if (original_price !== undefined && original_price !== '' && original_price !== null) {
+      finalOriginalPrice = Number(original_price);
+    } else {
+      const [existing] = await pool.query(
+        'SELECT original_price FROM products WHERE id = ?',
+        [productId]
+      );
+      finalOriginalPrice = existing.length > 0 && existing[0].original_price != null
+        ? Number(existing[0].original_price)
         : Number(price);
+    }
 
     const finalStatus = status || 'active';
 

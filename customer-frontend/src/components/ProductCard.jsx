@@ -29,7 +29,11 @@ export default function ProductCard({ product }) {
   const reviewsCount =
     product.reviews_count || 0;
 
-  const originalPrice = product.original_price;
+  // Show the crossed-out MRP only when it is strictly greater than the selling price
+  const originalPrice =
+    product.original_price != null
+      ? Number(product.original_price)
+      : null;
 
   return (
     <div className="product-card">
@@ -95,7 +99,7 @@ export default function ProductCard({ product }) {
               Rs.{Number(product.price || 0).toFixed(2)}
             </span>
 
-            {originalPrice && (
+            {originalPrice != null && originalPrice > Number(product.price || 0) && (
               <span className="original-price">
                 Rs.{Number(originalPrice).toFixed(2)}
               </span>

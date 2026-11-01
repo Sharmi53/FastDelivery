@@ -37,6 +37,7 @@ export default function App() {
   const [productDescription, setProductDescription] = useState('');
   const [productCategory, setProductCategory] = useState('');
   const [productPrice, setProductPrice] = useState('');
+  const [productOriginalPrice, setProductOriginalPrice] = useState('');
   const [productStock, setProductStock] = useState('');
   const [productImage, setProductImage] = useState('');
   const [productImageFile, setProductImageFile] = useState(null);
@@ -1067,6 +1068,7 @@ export default function App() {
     setProductDescription('');
     setProductCategory('');
     setProductPrice('');
+    setProductOriginalPrice('');
     setProductStock('');
     setProductImage('');
     setProductImageFile(null);
@@ -1081,6 +1083,13 @@ export default function App() {
     setProductDescription(product.description || '');
     setProductCategory(product.category_name || '');
     setProductPrice(product.price || '');
+    // Populate originalPrice: use saved value if it exists and differs from price,
+    // otherwise leave blank so the admin can set it intentionally.
+    setProductOriginalPrice(
+      product.original_price != null && Number(product.original_price) !== Number(product.price)
+        ? product.original_price
+        : ''
+    );
     setProductStock(product.stock_quantity || '');
     setProductImage(product.image || '');
     setProductImageFile(null);
@@ -1095,6 +1104,7 @@ export default function App() {
     setProductDescription('');
     setProductCategory('');
     setProductPrice('');
+    setProductOriginalPrice('');
     setProductStock('');
     setProductImage('');
     setProductImageFile(null);
@@ -1173,12 +1183,28 @@ export default function App() {
         finalImageUrl = uploadData.imageUrl;
       }
 
+      const sellingPrice = Number(productPrice);
+      // If admin left Original Price blank, treat it as equal to Selling Price (no discount).
+      const originalPrice =
+        productOriginalPrice !== '' && productOriginalPrice !== null
+          ? Number(productOriginalPrice)
+          : sellingPrice;
+
+      if (isNaN(sellingPrice) || sellingPrice < 0) {
+        alert('Selling Price must be a valid non-negative number.');
+        return;
+      }
+      if (isNaN(originalPrice) || originalPrice < 0) {
+        alert('Original Price (MRP) must be a valid non-negative number.');
+        return;
+      }
+
       const productData = {
         name: productName,
         description: productDescription,
         category: productCategory,
-        price: Number(productPrice),
-        original_price: Number(productPrice),
+        price: sellingPrice,
+        original_price: originalPrice,
         unit: 'piece',
         stock_quantity: Number(productStock),
         image: finalImageUrl,
@@ -1226,6 +1252,7 @@ export default function App() {
       setProductDescription('');
       setProductCategory('');
       setProductPrice('');
+      setProductOriginalPrice('');
       setProductStock('');
       setProductImage('');
       setProductImageFile(null);
@@ -2637,7 +2664,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* PRICE */}
+                  {/* ORIGINAL PRICE (MRP) */}
                   <div>
                     <label
                       style={{
@@ -2647,7 +2674,39 @@ export default function App() {
                         marginBottom: '0.4rem'
                       }}
                     >
-                      Price
+                      Original Price / MRP
+                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
+                        (crossed-out price — leave blank if no discount)
+                      </span>
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={productOriginalPrice}
+                      onChange={(e) => setProductOriginalPrice(e.target.value)}
+                      placeholder="Example: 150 (optional)"
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </div>
+
+                  {/* SELLING PRICE */}
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        marginBottom: '0.4rem'
+                      }}
+                    >
+                      Selling Price
                     </label>
 
                     <input

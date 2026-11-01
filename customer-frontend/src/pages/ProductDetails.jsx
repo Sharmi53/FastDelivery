@@ -47,9 +47,11 @@ export default function ProductDetails() {
           description: p.description,
           image: p.image,
           price: Number(p.price),
-          originalPrice: p.original_price
-            ? Number(p.original_price)
-            : null,
+          // Only expose originalPrice when it is strictly higher than the selling price
+          originalPrice:
+            p.original_price != null && Number(p.original_price) > Number(p.price)
+              ? Number(p.original_price)
+              : null,
           unit: p.unit,
           category: p.category_name,
           inStock: Number(p.stock_quantity) > 0,
@@ -239,7 +241,7 @@ export default function ProductDetails() {
               Rs.{product.price.toFixed(2)}
             </span>
 
-            {product.originalPrice && (
+            {product.originalPrice != null && product.originalPrice > product.price && (
               <span
                 style={{
                   fontSize: '1.1rem',
