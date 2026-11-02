@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -173,52 +173,45 @@ export default function PromotionalCarousel() {
                 className={`promo-carousel-slide ${isSlideActive ? 'active' : ''}`}
                 role="group"
                 aria-roledescription="slide"
-                aria-label={`${index + 1} of ${total}: ${banner.title}`}
+                aria-label={`${index + 1} of ${total}: ${banner.title || 'Promotional Banner'}`}
                 aria-hidden={!isSlideActive}
               >
-                {/* Background Image / GIF */}
-                {!hasImageError ? (
-                  <img
-                    src={banner.image_url}
-                    alt={banner.title}
-                    className="promo-carousel-img"
-                    onError={() => handleImageError(banner.id)}
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                  />
+                {banner.link_url ? (
+                  <Link
+                    to={banner.link_url}
+                    className="promo-carousel-link"
+                    tabIndex={isSlideActive ? 0 : -1}
+                    aria-label={banner.title || 'Promotional Banner'}
+                  >
+                    {!hasImageError ? (
+                      <img
+                        src={banner.image_url}
+                        alt={banner.title || 'Promotional Banner'}
+                        className="promo-carousel-img"
+                        onError={() => handleImageError(banner.id)}
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                      />
+                    ) : (
+                      <div className="promo-carousel-fallback-bg" />
+                    )}
+                  </Link>
                 ) : (
-                  <div className="promo-carousel-fallback-bg" />
+                  !hasImageError ? (
+                    <img
+                      src={banner.image_url}
+                      alt={banner.title || 'Promotional Banner'}
+                      className="promo-carousel-img"
+                      onError={() => handleImageError(banner.id)}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                    />
+                  ) : (
+                    <div className="promo-carousel-fallback-bg" />
+                  )
                 )}
-
-                {/* Gradient Overlay for Readability */}
-                <div className="promo-carousel-overlay" />
-
-                {/* Banner Content */}
-                <div className="promo-carousel-content">
-                  <span className="promo-carousel-badge">
-                    <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                    Special Promotion
-                  </span>
-
-                  <h2 className="promo-carousel-title">{banner.title}</h2>
-
-                  {banner.description && (
-                    <p className="promo-carousel-description">{banner.description}</p>
-                  )}
-
-                  {banner.button_text && (
-                    <Link
-                      to={banner.link_url || '/products'}
-                      className="promo-carousel-btn"
-                      tabIndex={isSlideActive ? 0 : -1}
-                    >
-                      <span>{banner.button_text}</span>
-                      <ArrowRight size={18} />
-                    </Link>
-                  )}
-                </div>
               </div>
             );
           })}
+
         </div>
       </div>
 
