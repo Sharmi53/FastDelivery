@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import PromotionalCarousel from '../components/PromotionalCarousel';
 import HeroBanner from '../components/HeroBanner';
 import CategoryCard from '../components/CategoryCard';
 import ProductCard from '../components/ProductCard';
@@ -106,6 +107,7 @@ export default function Home() {
 
   return (
     <div>
+      <PromotionalCarousel />
       <HeroBanner />
 
       {/* Category Section */}

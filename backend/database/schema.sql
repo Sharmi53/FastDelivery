@@ -265,3 +265,23 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (order_id) REFERENCES orders(id)
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- 13. banners
+-- Stores promotional homepage carousel banners
+-- ============================================================
+CREATE TABLE IF NOT EXISTS banners (
+  id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  title           VARCHAR(150)      NOT NULL,
+  description     TEXT              NULL,
+  image_url       VARCHAR(500)      NOT NULL,
+  cloudinary_id   VARCHAR(150)      NULL COMMENT 'Cloudinary public ID for asset cleanup',
+  button_text     VARCHAR(50)       NULL DEFAULT 'Shop Now',
+  link_url        VARCHAR(255)      NULL DEFAULT '/products',
+  display_order   INT UNSIGNED      NOT NULL DEFAULT 1,
+  status          ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at      DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_banners_status_order (status, display_order)
+) ENGINE=InnoDB;

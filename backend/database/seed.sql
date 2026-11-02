@@ -127,3 +127,13 @@ INSERT INTO notifications (user_id, order_id, title, message, type, is_read) VAL
   (4, NULL, 'Welcome to FreshBasket!', 'Thank you for joining. Enjoy fresh groceries delivered in 20 minutes.', 'system', 0),
   (5, NULL, 'Welcome to FreshBasket!', 'Thank you for joining. Enjoy fresh groceries delivered in 20 minutes.', 'system', 0),
   (4, NULL, 'Special Offer Today!',    'Get 20% off on all Fruits & Vegetables. Use code FRESH20.',          'promotion', 0);
+
+-- ============================================================
+-- SAMPLE PROMOTIONAL BANNERS
+-- ============================================================
+INSERT INTO banners (title, description, image_url, button_text, link_url, display_order, status) VALUES
+  ('Farm Fresh Organics', 'Crisp vegetables and sweet fruits picked daily with freshness guaranteed.', 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=1400&q=80', 'Shop Fresh', '/products?category=Fruits%20%26%20Vegetables', 1, 'active'),
+  ('Dairy & Morning Essentials', 'Pure milk, farm eggs, and artisanal butter delivered right to your doorstep.', 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=1400&q=80', 'Explore Dairy', '/products?category=Dairy%20%26%20Eggs', 2, 'active'),
+  ('Snack Attack! Up to 30% Off', 'Crunchy chips, premium nuts, and guilt-free munchies for every craving.', 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=1400&q=80', 'Grab Snacks', '/products?category=Snacks', 3, 'active'),
+  ('Chilled Sips & Refreshing Juices', '100% natural fruit juices, fizzy sodas, and cooling hydration.', 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=1400&q=80', 'View Drinks', '/products?category=Beverages', 4, 'active'),
+  ('Weekly Mega Super Savers', 'Stock up your kitchen pantry with incredible deals on daily staples.', 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&q=80', 'View All Deals', '/products', 5, 'active');

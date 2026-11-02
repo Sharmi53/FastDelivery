@@ -9,7 +9,12 @@ import {
   DollarSign,
   ShieldCheck,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  Image as ImageIcon,
+  ArrowUp,
+  ArrowDown,
+  Sparkles,
+  Plus
 } from 'lucide-react';
 
 const API_URL =
@@ -107,6 +112,28 @@ export default function App() {
   const [categoryImageUploading, setCategoryImageUploading] = useState(false);
   const [categoryStatus, setCategoryStatus] = useState('active');
   const [categorySaving, setCategorySaving] = useState(false);
+
+  // =====================================
+  // BANNER MANAGEMENT STATES
+  // =====================================
+  const [banners, setBanners] = useState([]);
+  const [bannerLoading, setBannerLoading] = useState(false);
+  const [bannerError, setBannerError] = useState('');
+  const [bannerSuccess, setBannerSuccess] = useState('');
+  const [showBannerForm, setShowBannerForm] = useState(false);
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [bannerTitle, setBannerTitle] = useState('');
+  const [bannerDescription, setBannerDescription] = useState('');
+  const [bannerButtonText, setBannerButtonText] = useState('Shop Now');
+  const [bannerLinkUrl, setBannerLinkUrl] = useState('/products');
+  const [bannerImage, setBannerImage] = useState('');
+  const [bannerCloudinaryId, setBannerCloudinaryId] = useState('');
+  const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState('');
+  const [bannerImageUploading, setBannerImageUploading] = useState(false);
+  const [bannerStatus, setBannerStatus] = useState('active');
+  const [bannerDisplayOrder, setBannerDisplayOrder] = useState(1);
+  const [bannerSaving, setBannerSaving] = useState(false);
 
   // =====================================
   // RESTORE ADMIN LOGIN AFTER REFRESH
@@ -213,6 +240,10 @@ export default function App() {
 
     if (activeTab === 'deliveryPartners') {
       loadDpList();
+    }
+
+    if (activeTab === 'banners') {
+      loadBanners();
     }
   }, [isAuthenticated, activeTab]);
   // =====================================
@@ -992,6 +1023,330 @@ export default function App() {
       setCategoryError(error.message);
     }
   };
+
+  // =====================================
+  // BANNER MANAGEMENT HANDLERS
+  // =====================================
+  const loadBanners = async () => {
+    try {
+      setBannerLoading(true);
+      setBannerError('');
+      const token = getAdminToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/banners/admin/all`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to load promotional banners');
+      }
+
+      setBanners(data.banners || []);
+    } catch (error) {
+      console.error('loadBanners error:', error);
+      setBannerError(error.message || 'Failed to load banners');
+    } finally {
+      setBannerLoading(false);
+    }
+  };
+
+  const resetBannerForm = () => {
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
+    setEditingBanner(null);
+    setBannerTitle('');
+    setBannerDescription('');
+    setBannerButtonText('Shop Now');
+    setBannerLinkUrl('/products');
+    setBannerImage('');
+    setBannerCloudinaryId('');
+    setBannerImageFile(null);
+    setBannerImagePreview('');
+    setBannerStatus('active');
+    setBannerDisplayOrder(banners.length + 1);
+    setShowBannerForm(false);
+    setBannerError('');
+  };
+
+  const handleOpenAddBanner = () => {
+    resetBannerForm();
+    const activeCount = banners.filter(b => b.status === 'active').length;
+    // If already 5 active, default status to inactive so admin is guided
+    setBannerStatus(activeCount >= 5 ? 'inactive' : 'active');
+    setBannerDisplayOrder(banners.length + 1);
+    setShowBannerForm(true);
+  };
+
+  const handleEditBanner = (banner) => {
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
+    setEditingBanner(banner);
+    setBannerTitle(banner.title || '');
+    setBannerDescription(banner.description || '');
+    setBannerButtonText(banner.button_text || 'Shop Now');
+    setBannerLinkUrl(banner.link_url || '/products');
+    setBannerImage(banner.image_url || '');
+    setBannerCloudinaryId(banner.cloudinary_id || '');
+    setBannerImageFile(null);
+    setBannerImagePreview(banner.image_url || '');
+    setBannerStatus(banner.status || 'active');
+    setBannerDisplayOrder(banner.display_order || 1);
+    setShowBannerForm(true);
+    setBannerError('');
+  };
+
+  const handleBannerImageFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      setBannerError('Invalid file format. Allowed formats: JPG, PNG, WebP, and animated GIF.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setBannerError('File size exceeds the 5MB limit. Please choose a smaller image or GIF.');
+      return;
+    }
+
+    setBannerError('');
+
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setBannerImageFile(file);
+    setBannerImagePreview(previewUrl);
+  };
+
+  const handleRemoveBannerImageFile = () => {
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
+    setBannerImageFile(null);
+    setBannerImagePreview(editingBanner ? editingBanner.image_url : '');
+    const fileInput = document.getElementById('banner-image-file-input');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleBannerSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!bannerTitle.trim()) {
+      setBannerError('Banner title is required');
+      return;
+    }
+
+    if (!bannerImageFile && !bannerImage) {
+      setBannerError('Please upload an image or animated GIF for the banner');
+      return;
+    }
+
+    const activeCount = banners.filter(b => b.status === 'active' && (!editingBanner || b.id !== editingBanner.id)).length;
+    if (bannerStatus === 'active' && activeCount >= 5) {
+      setBannerError('Maximum 5 active banners allowed in carousel. Please set status to Inactive or deactivate an existing banner first.');
+      return;
+    }
+
+    setBannerSaving(true);
+    setBannerError('');
+    setBannerSuccess('');
+
+    try {
+      const token = getAdminToken();
+      if (!token) throw new Error('Admin token not found. Please log in again.');
+
+      let finalImageUrl = bannerImage;
+      let finalCloudinaryId = bannerCloudinaryId;
+
+      // If user uploaded a new image/GIF file from computer
+      if (bannerImageFile) {
+        setBannerImageUploading(true);
+        const formData = new FormData();
+        formData.append('image', bannerImageFile);
+
+        const uploadRes = await fetch(`${API_URL}/banners/upload`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const uploadData = await uploadRes.json();
+        setBannerImageUploading(false);
+
+        if (!uploadRes.ok || !uploadData.success) {
+          throw new Error(uploadData.message || 'Failed to upload banner media');
+        }
+
+        finalImageUrl = uploadData.imageUrl;
+        finalCloudinaryId = uploadData.filename || null;
+      }
+
+      const payload = {
+        title: bannerTitle.trim(),
+        description: bannerDescription.trim(),
+        image_url: finalImageUrl,
+        cloudinary_id: finalCloudinaryId,
+        button_text: bannerButtonText.trim(),
+        link_url: bannerLinkUrl.trim(),
+        display_order: parseInt(bannerDisplayOrder, 10) || 1,
+        status: bannerStatus
+      };
+
+      const url = editingBanner ? `${API_URL}/banners/${editingBanner.id}` : `${API_URL}/banners`;
+      const method = editingBanner ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to save banner');
+      }
+
+      setBannerSuccess(editingBanner ? 'Banner updated successfully!' : 'Banner created successfully!');
+      resetBannerForm();
+      await loadBanners();
+
+      setTimeout(() => {
+        setBannerSuccess('');
+      }, 4000);
+    } catch (err) {
+      console.error('Save banner error:', err);
+      setBannerError(err.message || 'Failed to save banner');
+    } finally {
+      setBannerSaving(false);
+      setBannerImageUploading(false);
+    }
+  };
+
+  const handleDeleteBanner = async (bannerId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this promotional banner?');
+    if (!confirmed) return;
+
+    try {
+      const token = getAdminToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/banners/${bannerId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete banner');
+      }
+
+      setBannerSuccess('Banner deleted successfully!');
+      await loadBanners();
+      setTimeout(() => setBannerSuccess(''), 3000);
+    } catch (err) {
+      console.error('Delete banner error:', err);
+      setBannerError(err.message || 'Failed to delete banner');
+    }
+  };
+
+  const handleToggleBannerStatus = async (banner) => {
+    try {
+      const token = getAdminToken();
+      if (!token) return;
+
+      const newStatus = banner.status === 'active' ? 'inactive' : 'active';
+
+      if (newStatus === 'active') {
+        const activeCount = banners.filter(b => b.status === 'active' && b.id !== banner.id).length;
+        if (activeCount >= 5) {
+          alert('Maximum 5 active banners allowed in the carousel. Please deactivate an existing banner first.');
+          return;
+        }
+      }
+
+      const response = await fetch(`${API_URL}/banners/${banner.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...banner,
+          status: newStatus
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to toggle banner status');
+      }
+
+      await loadBanners();
+    } catch (err) {
+      console.error('Toggle banner status error:', err);
+      setBannerError(err.message || 'Failed to toggle banner status');
+    }
+  };
+
+  const handleMoveBanner = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= banners.length) return;
+
+    const newBanners = [...banners];
+    const temp = newBanners[index];
+    newBanners[index] = newBanners[targetIndex];
+    newBanners[targetIndex] = temp;
+
+    // Reassign sequential display orders
+    const ordersPayload = newBanners.map((b, idx) => ({
+      id: b.id,
+      display_order: idx + 1
+    }));
+
+    setBanners(newBanners);
+
+    try {
+      const token = getAdminToken();
+      if (!token) return;
+
+      const res = await fetch(`${API_URL}/banners/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ orders: ordersPayload })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update banner order');
+      }
+
+      await loadBanners();
+    } catch (err) {
+      console.error('Reorder error:', err);
+      setBannerError(err.message || 'Failed to update banner order');
+      await loadBanners();
+    }
+  };
   // =====================================
   // LOAD PRODUCTS
   // =====================================
@@ -1623,6 +1978,13 @@ export default function App() {
             <span>Delivery Partners</span>
           </li>
 
+          <li
+            className={`sidebar-link ${activeTab === 'banners' ? 'active' : ''}`}
+            onClick={() => setActiveTab('banners')}
+          >
+            <ImageIcon size={18} />
+            <span>Promotional Banners</span>
+          </li>
         </ul>
 
 
@@ -4007,7 +4369,736 @@ export default function App() {
 
           </div>
         )}
+
+        {/* ============================================================
+            PROMOTIONAL BANNERS MANAGEMENT TAB
+            ============================================================ */}
+        {activeTab === 'banners' && (
+          <div>
+            {/* Header & Add Banner Trigger */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    color: 'var(--text-main)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <ImageIcon size={26} color="#0891b2" />
+                  Homepage Promotional Banners
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+                  Manage the promotional carousel banners sliding automatically above the homepage hero section.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenAddBanner}
+                style={{
+                  background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.4rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 12px rgba(8, 145, 178, 0.25)'
+                }}
+              >
+                <Plus size={18} />
+                <span>Add New Banner</span>
+              </button>
+            </div>
+
+            {/* Active Banner Capacity Badge */}
+            <div
+              style={{
+                background: '#ecfeff',
+                border: '1px solid #cffafe',
+                borderRadius: '12px',
+                padding: '1rem 1.25rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Sparkles size={22} color="#0891b2" />
+                <div>
+                  <div style={{ fontWeight: 800, color: '#164e63', fontSize: '0.95rem' }}>
+                    Active Carousel Banners: {banners.filter(b => b.status === 'active').length} / 5
+                  </div>
+                  <div style={{ color: '#0e7490', fontSize: '0.85rem' }}>
+                    Up to 5 active banners will automatically slide on the customer homepage in their saved display order.
+                  </div>
+                </div>
+              </div>
+
+              {banners.filter(b => b.status === 'active').length >= 5 ? (
+                <span
+                  style={{
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: '1px solid #fde68a'
+                  }}
+                >
+                  Carousel Full (5/5)
+                </span>
+              ) : (
+                <span
+                  style={{
+                    background: '#dcfce7',
+                    color: '#166534',
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: '1px solid #bbf7d0'
+                  }}
+                >
+                  Slots Available ({5 - banners.filter(b => b.status === 'active').length} remaining)
+                </span>
+              )}
+            </div>
+
+            {/* Alerts */}
+            {bannerError && (
+              <div
+                style={{
+                  background: '#fee2e2',
+                  border: '1px solid #fecaca',
+                  color: '#991b1b',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600
+                }}
+              >
+                ⚠️ {bannerError}
+              </div>
+            )}
+
+            {bannerSuccess && (
+              <div
+                style={{
+                  background: '#dcfce7',
+                  border: '1px solid #bbf7d0',
+                  color: '#166534',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600
+                }}
+              >
+                ✅ {bannerSuccess}
+              </div>
+            )}
+
+            {/* Modal / Form for Add & Edit Banner */}
+            {showBannerForm && (
+              <div
+                style={{
+                  background: 'white',
+                  border: '1px solid #cffafe',
+                  borderRadius: '16px',
+                  padding: '1.75rem',
+                  marginBottom: '2rem',
+                  boxShadow: '0 10px 25px -5px rgba(8, 145, 178, 0.12)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '1.5rem',
+                    borderBottom: '1px solid var(--border)',
+                    paddingBottom: '1rem'
+                  }}
+                >
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    {editingBanner ? 'Edit Promotional Banner' : 'Create New Promotional Banner'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={resetBannerForm}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      border: 'none',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 700
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <form onSubmit={handleBannerSubmit}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                    {/* Title */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                        Banner Title *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Farm Fresh Organics"
+                        value={bannerTitle}
+                        onChange={(e) => setBannerTitle(e.target.value)}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    {/* Button Text */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                        Button Text (optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Shop Now"
+                        value={bannerButtonText}
+                        onChange={(e) => setBannerButtonText(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    {/* Destination Route / URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                        Destination URL / Route
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. /products?category=Fruits & Vegetables"
+                        value={bannerLinkUrl}
+                        onChange={(e) => setBannerLinkUrl(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                        Status
+                      </label>
+                      <select
+                        value={bannerStatus}
+                        onChange={(e) => setBannerStatus(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          fontSize: '0.9rem',
+                          background: 'white'
+                        }}
+                      >
+                        <option value="active">Active (Show in Homepage Carousel)</option>
+                        <option value="inactive">Inactive (Hidden from Customers)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                      Subtitle / Description (optional)
+                    </label>
+                    <textarea
+                      placeholder="e.g. Crisp vegetables and sweet fruits picked daily with freshness guaranteed."
+                      value={bannerDescription}
+                      onChange={(e) => setBannerDescription(e.target.value)}
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        fontSize: '0.9rem',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+
+                  {/* Image / GIF Upload Section */}
+                  <div
+                    style={{
+                      border: '2px dashed #0891b2',
+                      borderRadius: '12px',
+                      padding: '1.5rem',
+                      background: '#f0fdfa',
+                      marginBottom: '1.5rem',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <ImageIcon size={36} color="#0891b2" style={{ margin: '0 auto' }} />
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.25rem', color: '#164e63' }}>
+                      {bannerImagePreview ? 'Replace Banner Image or Animated GIF' : 'Upload Banner Image or Animated GIF'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#0e7490', marginBottom: '1rem' }}>
+                      Supported formats: JPG, PNG, WebP, and animated GIF (Max file size: 5MB).
+                      Recommended resolution: 1280 × 380 px.
+                    </div>
+
+                    <input
+                      id="banner-image-file-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleBannerImageFileChange}
+                      style={{ display: 'none' }}
+                    />
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+                      <label
+                        htmlFor="banner-image-file-input"
+                        style={{
+                          background: '#0891b2',
+                          color: 'white',
+                          padding: '0.6rem 1.25rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          display: 'inline-block'
+                        }}
+                      >
+                        Choose File from Computer
+                      </label>
+
+                      {bannerImageFile && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveBannerImageFile}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: 'none',
+                            padding: '0.6rem 1rem',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          Remove Selected File
+                        </button>
+                      )}
+                    </div>
+
+                    {bannerImageFile && (
+                      <div style={{ marginTop: '0.75rem', fontSize: '0.82rem', color: '#164e63', fontWeight: 600 }}>
+                        Selected: {bannerImageFile.name} ({(bannerImageFile.size / 1024).toFixed(1)} KB)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Live Mockup Preview */}
+                  {bannerImagePreview && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: '#164e63' }}>
+                        Live Carousel Preview (As Seen by Customers):
+                      </label>
+
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '240px',
+                          borderRadius: '16px',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2rem',
+                          boxShadow: '0 6px 18px rgba(8, 145, 178, 0.2)'
+                        }}
+                      >
+                        <img
+                          src={bannerImagePreview}
+                          alt="Banner Preview"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            zIndex: 1
+                          }}
+                        />
+
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.84) 0%, rgba(14, 116, 144, 0.65) 55%, rgba(6, 182, 212, 0.25) 100%)',
+                            zIndex: 2
+                          }}
+                        />
+
+                        <div style={{ position: 'relative', zIndex: 3, maxWidth: '480px', color: 'white' }}>
+                          <span
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.22)',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '20px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              display: 'inline-block',
+                              marginBottom: '0.5rem',
+                              border: '1px solid rgba(255, 255, 255, 0.3)'
+                            }}
+                          >
+                            Special Promotion
+                          </span>
+                          <h4 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.4rem', lineHeight: 1.2 }}>
+                            {bannerTitle || 'Your Banner Title'}
+                          </h4>
+                          {bannerDescription && (
+                            <p style={{ fontSize: '0.85rem', opacity: 0.95, marginBottom: '0.8rem', lineHeight: 1.4 }}>
+                              {bannerDescription}
+                            </p>
+                          )}
+                          {bannerButtonText && (
+                            <span
+                              style={{
+                                background: 'white',
+                                color: '#164e63',
+                                fontWeight: 800,
+                                padding: '0.5rem 1.1rem',
+                                borderRadius: '20px',
+                                fontSize: '0.85rem',
+                                display: 'inline-block'
+                              }}
+                            >
+                              {bannerButtonText} →
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={resetBannerForm}
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={bannerSaving || bannerImageUploading}
+                      style={{
+                        padding: '0.75rem 1.75rem',
+                        background: bannerSaving || bannerImageUploading ? '#94a3b8' : 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        cursor: bannerSaving || bannerImageUploading ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 12px rgba(8, 145, 178, 0.25)'
+                      }}
+                    >
+                      {bannerImageUploading
+                        ? 'Uploading Media...'
+                        : bannerSaving
+                        ? 'Saving Banner...'
+                        : editingBanner
+                        ? 'Update Banner'
+                        : 'Create Banner'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Banners Table Card */}
+            <div className="table-card">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Configured Promotional Banners ({banners.length})
+                </h3>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Use the Up/Down arrows to reorder display sequence.
+                </span>
+              </div>
+
+              {bannerLoading ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Loading promotional banners...
+                </div>
+              ) : banners.length === 0 ? (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <ImageIcon size={48} color="#94a3b8" style={{ margin: '0 auto 1rem' }} />
+                  <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.5rem' }}>No promotional banners found</p>
+                  <p style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>Click "Add New Banner" above to create your first promotional banner.</p>
+                  <button
+                    type="button"
+                    onClick={handleOpenAddBanner}
+                    style={{
+                      background: '#0891b2',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.6rem 1.25rem',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Add Banner
+                  </button>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '0.75rem', width: '90px' }}>Order</th>
+                        <th style={{ padding: '0.75rem', width: '120px' }}>Preview</th>
+                        <th style={{ padding: '0.75rem' }}>Title & Description</th>
+                        <th style={{ padding: '0.75rem' }}>Button / Route</th>
+                        <th style={{ padding: '0.75rem', width: '110px' }}>Status</th>
+                        <th style={{ padding: '0.75rem', width: '160px', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {banners.map((b, index) => {
+                        const isFirst = index === 0;
+                        const isLast = index === banners.length - 1;
+
+                        return (
+                          <tr
+                            key={b.id}
+                            style={{
+                              borderBottom: '1px solid var(--border)',
+                              background: b.status === 'active' ? 'white' : '#f8fafc'
+                            }}
+                          >
+                            {/* Order Controls */}
+                            <td style={{ padding: '0.75rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <span style={{ fontWeight: 800, width: '20px', textAlign: 'center' }}>
+                                  {index + 1}
+                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveBanner(index, -1)}
+                                    disabled={isFirst}
+                                    title="Move banner up"
+                                    style={{
+                                      background: isFirst ? '#f1f5f9' : '#e2e8f0',
+                                      color: isFirst ? '#cbd5e1' : '#1e293b',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '2px 4px',
+                                      cursor: isFirst ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    <ArrowUp size={12} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveBanner(index, 1)}
+                                    disabled={isLast}
+                                    title="Move banner down"
+                                    style={{
+                                      background: isLast ? '#f1f5f9' : '#e2e8f0',
+                                      color: isLast ? '#cbd5e1' : '#1e293b',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '2px 4px',
+                                      cursor: isLast ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    <ArrowDown size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Thumbnail */}
+                            <td style={{ padding: '0.75rem' }}>
+                              <img
+                                src={b.image_url}
+                                alt={b.title}
+                                style={{
+                                  width: '100px',
+                                  height: '50px',
+                                  objectFit: 'cover',
+                                  borderRadius: '6px',
+                                  border: '1px solid var(--border)'
+                                }}
+                              />
+                            </td>
+
+                            {/* Title & Description */}
+                            <td style={{ padding: '0.75rem' }}>
+                              <div style={{ fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+                                {b.title}
+                              </div>
+                              {b.description && (
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '320px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {b.description}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Button & Link */}
+                            <td style={{ padding: '0.75rem' }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0891b2' }}>
+                                {b.button_text || 'None'}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                {b.link_url || '/products'}
+                              </div>
+                            </td>
+
+                            {/* Status Toggle */}
+                            <td style={{ padding: '0.75rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleBannerStatus(b)}
+                                style={{
+                                  background: b.status === 'active' ? '#dcfce7' : '#fee2e2',
+                                  color: b.status === 'active' ? '#166534' : '#991b1b',
+                                  border: `1px solid ${b.status === 'active' ? '#bbf7d0' : '#fecaca'}`,
+                                  padding: '0.3rem 0.65rem',
+                                  borderRadius: '20px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {b.status === 'active' ? 'Active' : 'Inactive'}
+                              </button>
+                            </td>
+
+                            {/* Actions */}
+                            <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditBanner(b)}
+                                  style={{
+                                    padding: '0.45rem 0.75rem',
+                                    background: '#ecfeff',
+                                    color: '#0891b2',
+                                    border: '1px solid #cffafe',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem'
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBanner(b.id)}
+                                  style={{
+                                    padding: '0.45rem 0.75rem',
+                                    background: '#fee2e2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem'
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
+
 
     </div>
   );

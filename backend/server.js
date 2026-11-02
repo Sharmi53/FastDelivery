@@ -41,6 +41,7 @@ const paymentRoutes = require('./routes/payments');
 const deliveryRoutes = require('./routes/delivery');
 const locationRoutes = require('./routes/location');
 const contactRoutes = require('./routes/contact');
+const bannerRoutes = require('./routes/banners');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -51,6 +52,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // ── Admin Dashboard Statistics ────────────────────────────────
 const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
