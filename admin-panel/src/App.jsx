@@ -4564,11 +4564,11 @@ export default function App() {
                 </div>
 
                 <form onSubmit={handleBannerSubmit}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
-                    {/* Title */}
+                  <div className="banner-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                    {/* Title — kept for internal reference; not shown in customer carousel */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                        Banner Title *
+                        Banner Title * <span style={{ fontWeight: 400, color: '#64748b' }}>(internal label only — not shown to customers)</span>
                       </label>
                       <input
                         type="text"
@@ -4576,26 +4576,6 @@ export default function App() {
                         value={bannerTitle}
                         onChange={(e) => setBannerTitle(e.target.value)}
                         required
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border)',
-                          fontSize: '0.9rem'
-                        }}
-                      />
-                    </div>
-
-                    {/* Button Text */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                        Button Text (optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Shop Now"
-                        value={bannerButtonText}
-                        onChange={(e) => setBannerButtonText(e.target.value)}
                         style={{
                           width: '100%',
                           padding: '0.75rem',
@@ -4647,27 +4627,6 @@ export default function App() {
                         <option value="inactive">Inactive (Hidden from Customers)</option>
                       </select>
                     </div>
-                  </div>
-
-                  {/* Description */}
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                      Subtitle / Description (optional)
-                    </label>
-                    <textarea
-                      placeholder="e.g. Crisp vegetables and sweet fruits picked daily with freshness guaranteed."
-                      value={bannerDescription}
-                      onChange={(e) => setBannerDescription(e.target.value)}
-                      rows={2}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border)',
-                        fontSize: '0.9rem',
-                        fontFamily: 'inherit'
-                      }}
-                    />
                   </div>
 
                   {/* Image / GIF Upload Section */}
@@ -4744,26 +4703,28 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Live Mockup Preview */}
-                  {bannerImagePreview && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: '#164e63' }}>
-                        Live Carousel Preview (As Seen by Customers):
-                      </label>
+                  {/* Live Mockup Preview — image-only, matches customer carousel */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: '#164e63' }}>
+                      Live Carousel Preview (As Seen by Customers):
+                    </label>
 
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '240px',
-                          borderRadius: '16px',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '2rem',
-                          boxShadow: '0 6px 18px rgba(8, 145, 178, 0.2)'
-                        }}
-                      >
+                    <div
+                      className="banner-preview-box"
+                      style={{
+                        width: '100%',
+                        height: '240px',
+                        borderRadius: '16px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxShadow: '0 6px 18px rgba(8, 145, 178, 0.2)',
+                        background: '#e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {bannerImagePreview ? (
                         <img
                           src={bannerImagePreview}
                           alt="Banner Preview"
@@ -4773,66 +4734,17 @@ export default function App() {
                             left: 0,
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover',
-                            zIndex: 1
+                            objectFit: 'fill',
+                            display: 'block'
                           }}
                         />
-
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.84) 0%, rgba(14, 116, 144, 0.65) 55%, rgba(6, 182, 212, 0.25) 100%)',
-                            zIndex: 2
-                          }}
-                        />
-
-                        <div style={{ position: 'relative', zIndex: 3, maxWidth: '480px', color: 'white' }}>
-                          <span
-                            style={{
-                              background: 'rgba(255, 255, 255, 0.22)',
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: '20px',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              display: 'inline-block',
-                              marginBottom: '0.5rem',
-                              border: '1px solid rgba(255, 255, 255, 0.3)'
-                            }}
-                          >
-                            Special Promotion
-                          </span>
-                          <h4 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.4rem', lineHeight: 1.2 }}>
-                            {bannerTitle || 'Your Banner Title'}
-                          </h4>
-                          {bannerDescription && (
-                            <p style={{ fontSize: '0.85rem', opacity: 0.95, marginBottom: '0.8rem', lineHeight: 1.4 }}>
-                              {bannerDescription}
-                            </p>
-                          )}
-                          {bannerButtonText && (
-                            <span
-                              style={{
-                                background: 'white',
-                                color: '#164e63',
-                                fontWeight: 800,
-                                padding: '0.5rem 1.1rem',
-                                borderRadius: '20px',
-                                fontSize: '0.85rem',
-                                display: 'inline-block'
-                              }}
-                            >
-                              {bannerButtonText} →
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>
+                          No image selected
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Actions */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

@@ -27,11 +27,13 @@ body {
 
 .sidebar {
   width: 250px;
+  min-width: 250px;
   background: #0f172a;
   color: #94a3b8;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -42,6 +44,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .sidebar-menu {
@@ -61,6 +64,7 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .sidebar-link.active, .sidebar-link:hover {
@@ -71,6 +75,7 @@ body {
 .admin-main {
   flex: 1;
   padding: 2rem;
+  min-width: 0; /* prevents flex child overflow */
 }
 
 .stats-grid {
@@ -95,4 +100,105 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
+}
+
+/* ============================================================
+   RESPONSIVE — Tablet & Mobile
+   ============================================================ */
+
+/* ---- Tablet: 768px and below ---- */
+@media (max-width: 768px) {
+  /* Stack layout: sidebar becomes a horizontal top bar */
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide the brand title on very small screens to save space */
+  .sidebar-title {
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* Sidebar menu becomes a horizontal scrollable row */
+  .sidebar-menu {
+    flex-direction: row;
+    gap: 0.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px; /* prevent scrollbar clipping */
+    flex: 1;
+  }
+
+  .sidebar-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    flex-shrink: 0;
+    gap: 0.4rem;
+  }
+
+  /* Logout button: pin to end of the top bar row */
+  .sidebar button[style] {
+    margin-top: 0 !important;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  /* Main content: tighter padding */
+  .admin-main {
+    padding: 1rem;
+  }
+
+  /* Stats grid: single column on small tablets */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Table card: reduce internal padding */
+  .table-card {
+    padding: 1rem;
+  }
+}
+
+/* ---- Mobile: 480px and below ---- */
+@media (max-width: 480px) {
+  .sidebar-title {
+    display: none; /* hide brand label on tiny screens; icons + labels suffice */
+  }
+
+  .admin-main {
+    padding: 0.75rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-card {
+    padding: 0.75rem;
+  }
+
+  /* Banner form grid: force single column */
+  .banner-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Preview image: reduce height on tiny screens */
+  .banner-preview-box {
+    height: 160px !important;
+  }
 }
