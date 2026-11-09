@@ -52,6 +52,8 @@ export default function Footer() {
             <li><Link to="/cart">View Cart</Link></li>
             <li><Link to="/contact">Contact & Store Info</Link></li>
             <li><Link to="/orders">Order History</Link></li>
+            <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+            <li><Link to="/terms-and-conditions">Terms & Conditions</Link></li>
             <li><Link to="/customer/login">Account Login</Link></li>
             <li><Link to="/customer/register">Create Account</Link></li>
           </ul>

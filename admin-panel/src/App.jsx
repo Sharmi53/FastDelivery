@@ -14,7 +14,9 @@ import {
   ArrowUp,
   ArrowDown,
   Sparkles,
-  Plus
+  Plus,
+  Menu,
+  X
 } from 'lucide-react';
 
 const API_URL =
@@ -31,6 +33,41 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Close mobile navigation drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileNavOpen) {
+        setMobileNavOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileNavOpen]);
+
+  // Lock background scroll when mobile sidebar drawer is open
+  useEffect(() => {
+    if (mobileNavOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileNavOpen]);
+
+  // Auto-close mobile drawer if viewport resized to tablet/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && mobileNavOpen) {
+        setMobileNavOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mobileNavOpen]);
   // =====================================
   // PRODUCT MANAGEMENT STATES
   // =====================================
@@ -1921,9 +1958,21 @@ export default function App() {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
 
-        <div className="sidebar-title">
-          <ShoppingBag color="#10b981" size={24} />
-          <span>Admin Portal</span>
+        <div className="sidebar-header-left">
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open mobile navigation menu"
+            aria-expanded={mobileNavOpen}
+          >
+            <Menu size={22} />
+          </button>
+
+          <div className="sidebar-title">
+            <ShoppingBag color="#10b981" size={24} />
+            <span>Admin Portal</span>
+          </div>
         </div>
 
 
@@ -1990,12 +2039,13 @@ export default function App() {
 
         <button
           onClick={handleLogout}
+          className="sidebar-logout-btn"
           style={{
             marginTop: 'auto',
             background: '#1e293b',
             color: '#ef4444',
             border: 'none',
-            padding: '0.6rem',
+            padding: '0.6rem 0.9rem',
             borderRadius: '8px',
             cursor: 'pointer',
             display: 'flex',
@@ -2006,9 +2056,120 @@ export default function App() {
           }}
         >
           <LogOut size={16} />
-          Logout Admin
+          <span>Logout Admin</span>
         </button>
 
+      </aside>
+
+      {/* Mobile Slide-Out Sidebar Drawer & Overlay (Visible ONLY on mobile) */}
+      <div
+        className={`mobile-sidebar-overlay ${mobileNavOpen ? 'open' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden={!mobileNavOpen}
+      />
+
+      <aside
+        className={`mobile-sidebar ${mobileNavOpen ? 'open' : ''}`}
+        aria-label="Mobile Navigation Menu"
+        aria-hidden={!mobileNavOpen}
+      >
+        <div className="mobile-sidebar-header">
+          <div className="mobile-sidebar-brand">
+            <ShoppingBag color="#10b981" size={22} />
+            <span>Admin Portal</span>
+          </div>
+          <button
+            type="button"
+            className="mobile-sidebar-close"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close navigation menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-sidebar-nav">
+          <ul className="mobile-sidebar-menu">
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('dashboard');
+                setMobileNavOpen(false);
+              }}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard Overview</span>
+            </li>
+
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'products' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('products');
+                setMobileNavOpen(false);
+              }}
+            >
+              <Package size={18} />
+              <span>Products Catalog</span>
+            </li>
+
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'categories' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('categories');
+                setMobileNavOpen(false);
+              }}
+            >
+              <FolderTree size={18} />
+              <span>Categories</span>
+            </li>
+
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'orders' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('orders');
+                setMobileNavOpen(false);
+              }}
+            >
+              <ShoppingBag size={18} />
+              <span>Orders Management</span>
+            </li>
+
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'deliveryPartners' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('deliveryPartners');
+                setMobileNavOpen(false);
+              }}
+            >
+              <Truck size={18} />
+              <span>Delivery Partners</span>
+            </li>
+
+            <li
+              className={`mobile-sidebar-link ${activeTab === 'banners' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('banners');
+                setMobileNavOpen(false);
+              }}
+            >
+              <ImageIcon size={18} />
+              <span>Promotional Banners</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="mobile-sidebar-footer">
+          <button
+            onClick={() => {
+              setMobileNavOpen(false);
+              handleLogout();
+            }}
+            className="mobile-sidebar-logout"
+          >
+            <LogOut size={16} />
+            <span>Logout Admin</span>
+          </button>
+        </div>
       </aside>
 
 

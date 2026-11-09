@@ -269,6 +269,94 @@ export default function MyOrders() {
         Track your active deliveries and past purchases
       </p>
 
+      {/* Defective Product & Refund WhatsApp Support Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%)',
+          border: '1.5px solid #a7f3d0',
+          borderRadius: '16px',
+          padding: '1.1rem 1.35rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 300px' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              background: '#25D366',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              flexShrink: 0,
+              boxShadow: '0 3px 10px rgba(37, 211, 102, 0.3)'
+            }}
+          >
+            {/* WhatsApp Chat Bubble Icon */}
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, color: '#065f46', fontSize: '0.98rem', marginBottom: '0.2rem' }}>
+              Defective Product or Refund Request?
+            </div>
+            <div style={{ color: '#047857', fontSize: '0.86rem', lineHeight: 1.45 }}>
+              For defective products, damaged items, or refund assistance, contact us directly on WhatsApp with your Order ID and product photo.
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="https://wa.me/919800157525?text=Hello%20FastDelivery,%20I%20have%20an%20issue%20with%20a%20defective%20product%20and%20would%20like%20to%20request%20assistance%20/%20refund."
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+            color: 'white',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '25px',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.55rem',
+            textDecoration: 'none',
+            boxShadow: '0 4px 12px rgba(37, 211, 102, 0.28)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {/* WhatsApp Logo Icon */}
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824z" />
+          </svg>
+          <span>Chat on WhatsApp</span>
+        </a>
+      </div>
+
       {orders.length === 0 ? (
         <div
           style={{

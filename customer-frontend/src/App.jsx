@@ -15,6 +15,8 @@ import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders';
 import ShopContactPage from './pages/ShopContactPage';
 import ForgotPassword from './pages/ForgotPassword';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsAndConditions from './pages/TermsAndConditions';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -50,6 +52,10 @@ function AppRoutes({ searchTerm, setSearchTerm }) {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<MyOrders />} />
           <Route path="/contact" element={<ShopContactPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+          <Route path="/terms" element={<Navigate to="/terms-and-conditions" replace />} />
 
           {/* Admin Flow Route */}
           <Route path="/admin/login" element={<AdminLogin />} />

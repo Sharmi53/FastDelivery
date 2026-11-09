@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRightLeft, Phone } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, User, ShoppingCart, LogOut, ShieldCheck, ArrowRightLeft, Phone, Sparkles, ChevronRight } from 'lucide-react';
 import fastDeliveryLogo from '../assets/fastdelivery-logo.jpg';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ export default function Header({ searchTerm, setSearchTerm }) {
   const { cartCount } = useCart();
   const { user, isAuthenticated, logout, selectedRole, clearRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -20,6 +21,12 @@ export default function Header({ searchTerm, setSearchTerm }) {
   const handleSwitchRole = () => {
     clearRole();
     navigate('/');
+  };
+
+  const handleExploreClick = () => {
+    if (location.pathname === '/home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -59,15 +66,30 @@ export default function Header({ searchTerm, setSearchTerm }) {
       {/* Main Header */}
       <div className="header">
         <div className="header-inner">
-          {/* Official FastDelivery Logo */}
-          <Link to="/home" className="logo" title="FastDelivery Home">
-            <img
-              src={fastDeliveryLogo}
-              alt="FastDelivery Logo"
-              className="logo-img"
-              style={{ maxHeight: '46px', width: 'auto', objectFit: 'contain', display: 'block' }}
-            />
-          </Link>
+          {/* Brand Group: Logo + Explore Groceries Button */}
+          <div className="header-brand-group">
+            <Link to="/home" className="logo" title="FastDelivery Home">
+              <img
+                src={fastDeliveryLogo}
+                alt="FastDelivery Logo"
+                className="logo-img"
+                style={{ maxHeight: '46px', width: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            </Link>
+
+            <Link
+              to="/home"
+              onClick={handleExploreClick}
+              className="explore-groceries-btn"
+              title="Let's Explore Groceries"
+            >
+              <Sparkles size={15} className="explore-sparkle-icon" />
+              <span className="explore-text-desktop">Let's Explore Groceries</span>
+              <span className="explore-text-tablet">Explore Groceries</span>
+              <span className="explore-text-mobile">Explore Now</span>
+              <ChevronRight size={13} className="explore-arrow-icon" />
+            </Link>
+          </div>
 
           {/* Search Bar */}
           <form className="search-bar" onSubmit={handleSearchSubmit}>
@@ -83,10 +105,6 @@ export default function Header({ searchTerm, setSearchTerm }) {
 
           {/* User Nav Actions */}
           <div className="nav-actions">
-            <Link to="/products" className="nav-btn nav-btn-outline" style={{ display: 'none', md: 'flex' }}>
-              All Products
-            </Link>
-
             {isAuthenticated ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Link to="/orders" className="nav-btn nav-btn-outline">
